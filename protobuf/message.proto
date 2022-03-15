@@ -1,13 +1,10 @@
 syntax = "proto3";
 
-import public "google/protobuf/timestamp.proto";
-
 option go_package = "/message";
 
 message Message {
-  uint64 id = 1;
+  int64 id = 1;
   int32 type = 2;
-  google.protobuf.Timestamp Time = 3;
   string from = 4;
   string to = 5;
   bytes content = 6;

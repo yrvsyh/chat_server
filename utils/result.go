@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -23,9 +24,13 @@ func SuccessWithData(c *gin.Context, msg string, data interface{}) {
 }
 
 func Error(c *gin.Context, code int, msg string) {
-	c.JSON(http.StatusOK, Result{Code: code, Msg: msg})
+	ret := Result{Code: code, Msg: msg}
+	log.Error(ret)
+	c.JSON(http.StatusOK, ret)
 }
 
 func ErrorWithData(c *gin.Context, code int, msg string, data interface{}) {
-	c.JSON(http.StatusOK, Result{Code: code, Msg: msg, Data: data})
+	ret := Result{Code: code, Msg: msg, Data: data}
+	log.Error(ret)
+	c.JSON(http.StatusOK, ret)
 }

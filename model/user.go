@@ -1,24 +1,40 @@
 package model
 
-import "chat_server/database"
-
-type (
-	User struct {
-		Username string `gorm:"primarykey;notNull;default:''" json:"username,omitempty" form:"username"`
-		Password string `gorm:"notNull;default:''" json:"password,omitempty" form:"password"`
-		Email    string `gorm:"notNull;default:''" json:"email,omitempty" form:"email"`
-		Avatar   string `gorm:"notNull;default:''" json:"avatar,omitempty"`
-		// Role     int    `gorm:"notNull;default:1" json:"role,omitempty" form:"role"`
-	}
+import (
+	"chat_server/database"
+	"gorm.io/gorm"
 )
 
-// const (
-// 	USER_ROLE_ADMIN  = 0
-// 	USER_ROLE_NORMAL = 1
-// )
+type User struct {
+	gorm.Model
+	Username  string `gorm:"uniqueIndex"`
+	Password  string
+	PublicKey []byte
+
+	Email  string
+	Phone  string
+	Avatar string
+
+	Friends         []*User    `gorm:"many2many:user_friends"`
+	Groups          []*Group   `gorm:"many2many:user_groups;"`
+	SendMessages    []*Message `gorm:"foreignKey:From"`
+	ReceiveMessages []*Message `gorm:"foreignKey:To"`
+}
+
+type UserFriends struct {
+	UserID   uint `gorm:"primaryKey"`
+	FriendID uint `gorm:"primaryKey"`
+	Remark   string
+}
+
+type UserGroups struct {
+	UserID  uint `gorm:"primaryKey"`
+	GroupID uint `gorm:"primaryKey"`
+	Remark  string
+}
 
 func init() {
-	database.DB.AutoMigrate(&User{})
+	database.DB.AutoMigrate(User{}, UserFriends{}, UserGroups{})
 }
 
 // func (*UserModel) TableName() string { return "user" }

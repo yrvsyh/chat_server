@@ -13,7 +13,9 @@ func InitRouter() *gin.Engine {
 	r.Use(middleware.LoggerMiddleware(log.StandardLogger()))
 	r.Use(gin.Recovery())
 
-	r.GET("/ws/chat", controller.ChatHandle)
+	ws := r.Group("/ws")
+	ws.Use(middleware.JWTAuthMiddleware())
+	ws.GET("/chat", controller.ChatHandle)
 
 	auth := r.Group("/auth")
 	auth.POST("/login", controller.Login)

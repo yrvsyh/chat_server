@@ -23,7 +23,7 @@ type (
 var (
 	tokenSecretKey = []byte("secret_key")
 	// token过期时间
-	tokenExpireDuration = time.Hour
+	tokenExpireDuration = time.Hour * 24
 	// token可刷新时间
 	tokenRefreshDuration = time.Hour * 24 * 30
 )

@@ -23,7 +23,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	user.Password = hashPasswd(user.Password)
+	user.Password = hashPassword(user.Password)
 
 	if err := service.InsertUser(user); err != nil {
 		utils.Error(c, -1, "注册失败")
@@ -87,17 +87,17 @@ func Logout(c *gin.Context) {
 	utils.Success(c, "注销成功")
 }
 
-func verifyPassword(formPasswd string, dbPasswd string) bool {
-	hashPasswd := hashPasswd(formPasswd)
+func verifyPassword(formPassword string, dbPassword string) bool {
+	hashPassword := hashPassword(formPassword)
 	log.WithFields(log.Fields{
-		"password":   formPasswd,
-		"dbPasswd":   dbPasswd,
-		"hashPasswd": hashPasswd,
+		"password":     formPassword,
+		"dbPassword":   dbPassword,
+		"hashPassword": hashPassword,
 	}).Info("PASS")
-	return dbPasswd == hashPasswd
+	return dbPassword == hashPassword
 }
 
-func hashPasswd(password string) string {
+func hashPassword(password string) string {
 	sha256sum := sha256.Sum256([]byte(password + config.PasswordSalt))
 	return hex.EncodeToString(sha256sum[:])
 }
