@@ -3,6 +3,7 @@ package chat
 import (
 	"chat_server/message"
 	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -51,31 +52,44 @@ func (m *clientManager) run() {
 		select {
 		case client := <-m.register:
 			m.clients[client.name] = client
+			log.Info("Register: ", client.name)
 		case client := <-m.unregister:
 			delete(m.clients, client.name)
+			log.Info("Unregister: ", client.name)
 		case friendsInfo := <-m.friendsChange:
 			client, ok := m.clients[friendsInfo.name]
 			if ok {
 				client.friends = friendsInfo.friends
 			}
+			log.Info("FriendsChange: ", client.name)
 		case groupsInfo := <-m.groupsChange:
 			client, ok := m.clients[groupsInfo.name]
 			if ok {
 				client.groups = groupsInfo.groups
 			}
+			log.Info("GroupsChange: ", client.name)
 		}
 	}
+}
+
+func unregisterClient(c *client) {
+	c.conn.Close()
+	manager.unregister <- c
 }
 
 func RegisterClient(name string, conn *websocket.Conn) {
 	client := &client{name: name, conn: conn, send: make(chan *message.Message)}
 	manager.register <- client
 
-	go readHandle(client)
 	go writeHandle(client)
-
 	// 上线处理
-	go userOnlineHandle(name)
+	if !userOnlineHandle(client) {
+		// 上线初始化出错后直接断开链接, 客户端自动重连
+		unregisterClient(client)
+		return
+	}
+
+	go readHandle(client)
 }
 
 func UpdateUserFriendsInfo(name string, friends map[string]bool) {

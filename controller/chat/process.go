@@ -7,37 +7,49 @@ import (
 	"strconv"
 )
 
-func userOnlineHandle(name string) {
-	// 对在线好友广播上线通知
-	friends, err := service.GetUserFriendNameList(name)
+func userOnlineHandle(c *client) bool {
+	// 初始化manager内的friends和groups信息
+	friendsSet, err := service.GetUserFriendNameSet(c.name)
 	if err != nil {
 		log.Error(err)
-	} else {
-		for _, friend := range friends {
-			c, ok := manager.clients[friend]
-			// 好友在线
-			if ok {
-				msg := &message.Message{
-					Type: int32(message.MessageType_FRIEND_ONLINE),
-					From: name,
-					To:   friend,
-				}
-				c.send <- msg
+		return false
+	}
+	UpdateUserFriendsInfo(c.name, friendsSet)
+
+	groupsSet, err := service.GetUserGroupNameSet(c.name)
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+	UpdateUserGroupsInfo(c.name, groupsSet)
+
+	// 对在线好友广播上线通知
+	friends := manager.clients[c.name].friends
+	for friend := range friends {
+		c, ok := manager.clients[friend]
+		// 好友在线
+		if ok {
+			msg := &message.Message{
+				Type: int32(message.MessageType_FRIEND_ONLINE),
+				From: c.name,
+				To:   friend,
 			}
+			c.send <- msg
 		}
 	}
+	return true
 }
 
-func userOfflineHandle(name string) {
+func userOfflineHandle(c *client) {
 	// 对在线好友广播下线通知
-	friends := manager.clients[name].friends
-	for friend, _ := range friends {
+	friends := c.friends
+	for friend := range friends {
 		c, ok := manager.clients[friend]
 		// 好友在线
 		if ok {
 			msg := &message.Message{
 				Type: int32(message.MessageType_FRIEND_OFFLINE),
-				From: name,
+				From: c.name,
 				To:   friend,
 			}
 			c.send <- msg

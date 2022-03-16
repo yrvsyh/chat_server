@@ -41,11 +41,21 @@ func GetUserFriendNameList(name string) ([]string, error) {
 }
 
 func GetUserFriendNameSet(name string) (map[string]bool, error) {
-	var ret map[string]bool
+	ret := make(map[string]bool)
 	var userFriends []model.UserFriends
 	err := db.Model(&model.UserFriends{}).Where("user_name = ?", name).Find(&userFriends).Error
 	for _, userFriend := range userFriends {
 		ret[userFriend.FriendName] = true
+	}
+	return ret, err
+}
+
+func GetUserGroupNameSet(name string) (map[uint]bool, error) {
+	ret := make(map[uint]bool)
+	var userGroups []model.UserGroups
+	err := db.Model(&model.UserGroups{}).Where("user_name = ?", name).Find(&userGroups).Error
+	for _, userGroup := range userGroups {
+		ret[userGroup.GroupID] = true
 	}
 	return ret, err
 }
