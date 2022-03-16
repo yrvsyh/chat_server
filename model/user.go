@@ -1,60 +1,90 @@
 package model
 
-import (
-	"chat_server/database"
-	"gorm.io/gorm"
+import "time"
+
+// Model定义
+type (
+	User struct {
+		BaseModel
+		Username  string    `gorm:"uniqueIndex" form:"username"`
+		PublicKey []byte    `form:"public_key"`
+		UserAuth  *UserAuth `gorm:"foreignKey:Username;references:Username"`
+
+		Email  string
+		Phone  string
+		Avatar string
+
+		Friends         []*UserFriends `gorm:"foreignKey:UserID"`
+		Groups          []*UserGroups  `gorm:"foreignKey:UserID"`
+		SendMessages    []*Message     `gorm:"foreignKey:From;references:Username"`
+		ReceiveMessages []*Message     `gorm:"foreignKey:To;references:Username"`
+	}
+
+	UserAuth struct {
+		Username string `form:"username"`
+		Password string `form:"password"`
+	}
+
+	UserFriends struct {
+		UserID   uint  `gorm:"primaryKey"`
+		FriendID uint  `gorm:"primaryKey"`
+		Friend   *User `json:"friend,omitempty"`
+		Remark   string
+
+		CreatedAt time.Time
+		UpdatedAt time.Time
+	}
+
+	UserGroups struct {
+		UserID  uint `gorm:"primaryKey"`
+		GroupID uint `gorm:"primaryKey"`
+		Group   *Group
+		Remark  string
+
+		CreatedAt time.Time
+		UpdatedAt time.Time
+	}
 )
 
-type User struct {
-	gorm.Model
-	Username  string `gorm:"uniqueIndex"`
-	Password  string
-	PublicKey []byte
-
-	Email  string
-	Phone  string
-	Avatar string
-
-	Friends         []*User    `gorm:"many2many:user_friends"`
-	Groups          []*Group   `gorm:"many2many:user_groups;"`
-	SendMessages    []*Message `gorm:"foreignKey:From"`
-	ReceiveMessages []*Message `gorm:"foreignKey:To"`
-}
-
-type UserFriends struct {
-	UserID   uint `gorm:"primaryKey"`
-	FriendID uint `gorm:"primaryKey"`
-	Remark   string
-}
-
-type UserGroups struct {
-	UserID  uint `gorm:"primaryKey"`
-	GroupID uint `gorm:"primaryKey"`
-	Remark  string
-}
+//type (
+//	UserDTO struct {
+//		Username  string `form:"username" binding:"required"`
+//		PublicKey string
+//
+//		Email  string
+//		Phone  string
+//		Avatar string
+//	}
+//
+//	UserAuthDTO struct {
+//		UserDTO
+//		Password string `form:"password" binding:"required"`
+//	}
+//)
 
 func init() {
-	database.DB.AutoMigrate(User{}, UserFriends{}, UserGroups{})
+	db.AutoMigrate(User{}, UserAuth{}, UserFriends{}, UserGroups{})
 }
 
-// func (*UserModel) TableName() string { return "user" }
-
-// func (user *UserModel) ToDTO() *dto.User {
-// 	return &dto.User{
-// 		Name:  user.Name,
-// 		Email: user.Email,
-// 		Role:  user.Role,
-// 	}
-// }
-
-func GetUserById(username string) *User {
-	user := &User{Username: username}
-	if database.DB.First(user).Error != nil {
-		return nil
-	}
-	return user
-}
-
-func InsertUser(user *User) error {
-	return database.DB.Create(user).Error
-}
+//func (user *User) ToDTO() *UserDTO {
+//	return &UserDTO{
+//		Username:  user.Username,
+//		PublicKey: string(user.PublicKey),
+//		Email:     user.Email,
+//		Phone:     user.Phone,
+//		Avatar:    user.Avatar,
+//	}
+//}
+//
+//func (user *UserAuthDTO) ToUserAuth() *UserAuth {
+//	return &UserAuth{
+//		User: User{
+//			Username:  user.Username,
+//			PublicKey: []byte(user.PublicKey),
+//			Email:     user.Email,
+//			Phone:     user.Phone,
+//			Avatar:    user.Phone,
+//		},
+//		Password: user.Password,
+//	}
+//}

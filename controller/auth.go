@@ -8,24 +8,29 @@ import (
 	"chat_server/utils"
 	"crypto/sha256"
 	"encoding/hex"
-
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
 
 func Register(c *gin.Context) {
-	user := &model.User{}
-	c.Bind(user)
+	auth := &model.UserAuth{}
+	err := c.Bind(auth)
+	if err != nil {
+		utils.Error(c, -1, "信息不完善")
+		c.Abort()
+		return
+	}
 
-	if dbUser := service.GetUserById(user.Username); dbUser != nil {
+	_, err = service.GetUserAuthByName(auth.Username)
+	if err == nil {
 		utils.Error(c, -1, "用户已存在")
 		c.Abort()
 		return
 	}
 
-	user.Password = hashPassword(user.Password)
+	auth.Password = hashPassword(auth.Password)
 
-	if err := service.InsertUser(user); err != nil {
+	if err := service.RegisterUser(auth); err != nil {
 		utils.Error(c, -1, "注册失败")
 		c.Abort()
 		return
@@ -35,55 +40,62 @@ func Register(c *gin.Context) {
 }
 
 func Login(c *gin.Context) {
-	tokenString := middleware.GetToken(c)
-	if middleware.VerifyToken(tokenString) {
-		// utils.Error(c, utils.ERR_ALREADY_LOGIN)
+	auth := &model.UserAuth{}
+	err := c.Bind(auth)
+
+	if err != nil {
+		utils.Error(c, -1, "信息不完善")
+		c.Abort()
 		return
 	}
 
-	user := &model.User{}
-	c.Bind(user)
+	log.Info(auth)
 
-	dbUser := service.GetUserById(user.Username)
-	if dbUser == nil {
+	dbUser, err := service.GetUserAuthByName(auth.Username)
+	if err != nil {
 		utils.Error(c, -1, "用户不存在")
 		c.Abort()
 		return
 	}
 
-	if !verifyPassword(user.Password, dbUser.Password) {
+	if !verifyPassword(auth.Password, dbUser.UserAuth.Password) {
 		utils.Error(c, -1, "密码错误")
 		c.Abort()
 		return
 	}
 
-	// tokenString, err := middleware.GenToken(user.Name, user.Role)
-	tokenString, err := middleware.GenToken(user.Username)
+	session := middleware.GetAuthSession(c)
+	session.Values["id"] = dbUser.ID
+	session.Values["username"] = dbUser.Username
+
+	err = session.Save(c.Request, c.Writer)
 	if err != nil {
-		utils.Error(c, -1, "Token生成失败")
+		utils.Error(c, -1, "服务器错误")
 		c.Abort()
 		return
 	}
 
-	utils.SuccessWithData(c, "登陆成功", gin.H{"token": tokenString})
+	utils.Success(c, "登陆成功")
 }
 
-func Refresh(c *gin.Context) {
-	tokenString := middleware.GetToken(c)
-	newTokenString, err := middleware.RefreshToken(tokenString)
-	if err != nil {
-		utils.Error(c, -1, "Token刷新失败")
-		return
-	}
-	utils.SuccessWithData(c, "token刷新成功", gin.H{"token": newTokenString})
+func GetLoginUserInfo(c *gin.Context) (uint, string) {
+	session := middleware.GetAuthSession(c)
+	id := session.Values["id"].(uint)
+	username := session.Values["username"].(string)
+	return id, username
 }
 
 func Logout(c *gin.Context) {
-	tokenString := middleware.GetToken(c)
-	if err := middleware.DelToken(tokenString); err != nil {
-		utils.Error(c, -1, "Token删除失败")
+	session := middleware.GetAuthSession(c)
+	delete(session.Values, "id")
+	delete(session.Values, "username")
+	err := session.Save(c.Request, c.Writer)
+	if err != nil {
+		utils.Error(c, -1, "服务器错误")
+		c.Abort()
 		return
 	}
+
 	utils.Success(c, "注销成功")
 }
 
@@ -93,7 +105,7 @@ func verifyPassword(formPassword string, dbPassword string) bool {
 		"password":     formPassword,
 		"dbPassword":   dbPassword,
 		"hashPassword": hashPassword,
-	}).Info("PASS")
+	}).Info("PASSWORD CHECK")
 	return dbPassword == hashPassword
 }
 

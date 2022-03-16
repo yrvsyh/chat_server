@@ -1,17 +1,15 @@
 package model
 
-import (
-	"chat_server/database"
-	"gorm.io/gorm"
-)
+import "gorm.io/gorm"
 
 type Message struct {
 	gorm.Model
-	From    uint
-	To      uint
+	From    string
+	To      string
+	Type    uint8
 	Content []byte
 }
 
 func init() {
-	database.DB.AutoMigrate(Message{})
+	db.AutoMigrate(Message{})
 }

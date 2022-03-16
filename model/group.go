@@ -1,18 +1,14 @@
 package model
 
-import (
-	"chat_server/database"
-	"gorm.io/gorm"
-)
-
 type Group struct {
-	gorm.Model
+	BaseModel
 	Name      string
 	PublicKey []byte
 
-	Users []*User `gorm:"many2many:user_groups;"`
+	Users []*User `gorm:"many2many:user_groups"`
 }
 
 func init() {
-	database.DB.AutoMigrate(Group{})
+	db.SetupJoinTable(&Group{}, "Users", &UserGroups{})
+	db.AutoMigrate(Group{})
 }

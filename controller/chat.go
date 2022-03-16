@@ -3,7 +3,6 @@ package controller
 import (
 	"chat_server/database"
 	"chat_server/message"
-	"chat_server/middleware"
 	"chat_server/service"
 	"net/http"
 	"time"
@@ -65,9 +64,7 @@ func ChatHandle(c *gin.Context) {
 		return
 	}
 
-	tokenString := middleware.GetToken(c)
-	claims, _ := middleware.ParseToken(tokenString)
-	id := claims.Name
+	_, id := GetLoginUserInfo(c)
 
 	client := &client{id: id, conn: ws, send: make(chan []byte)}
 	manager.register <- client
@@ -106,11 +103,13 @@ func readHandle(c *client) {
 		client, ok := manager.clients[id]
 		if !ok {
 			// 目标用户不存在
-			if !service.CheckUserExist(id) {
+			if !service.CheckUserExistByName(id) {
+				log.Error("用户不存在")
 				continue
 			}
 			// 缓存离线信息
 			database.RDB.LPush(id, msg)
+			continue
 		}
 
 		// 重新构造消息内容

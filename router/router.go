@@ -13,17 +13,18 @@ func InitRouter() *gin.Engine {
 	r.Use(middleware.LoggerMiddleware(log.StandardLogger()))
 	r.Use(gin.Recovery())
 
-	ws := r.Group("/ws")
-	ws.Use(middleware.JWTAuthMiddleware())
-	ws.GET("/chat", controller.ChatHandle)
+	r.GET("/ws/chat", middleware.SessionAuthMiddleware(), controller.ChatHandle)
 
 	auth := r.Group("/auth")
-	auth.POST("/login", controller.Login)
 	auth.POST("/register", controller.Register)
+	auth.POST("/login", controller.Login)
+	auth.GET("/logout", middleware.SessionAuthMiddleware(), controller.Logout)
 
-	user := r.Group("/user/:id")
-	user.Use(middleware.JWTAuthMiddleware())
-	user.GET("/avatar", controller.GetUserAvatar)
+	user := r.Group("/user")
+	user.Use(middleware.SessionAuthMiddleware())
+	user.GET("/avatar/:username", controller.GetUserAvatar)
+	user.GET("/friends", controller.GetUserFriends)
+	user.GET("/friends_detail", controller.GetUserFriendsDetail)
 
 	return r
 }

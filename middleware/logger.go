@@ -14,6 +14,9 @@ func LoggerMiddleware(logger *log.Logger) gin.HandlerFunc {
 
 		path := c.Request.URL.Path
 		query := c.Request.URL.RawQuery
+
+		c.Set("Code", 0)
+		c.Set("Msg", "")
 		c.Next()
 
 		end := time.Now()
@@ -37,7 +40,9 @@ func LoggerMiddleware(logger *log.Logger) gin.HandlerFunc {
 			if query != "" {
 				field["query"] = query
 			}
-			logger.WithFields(field).Info("REQUEST")
+			code, _ := c.Get("Code")
+			msg, _ := c.Get("Msg")
+			logger.WithFields(field).Infof("REQUEST [%s] [Code=%d Msg=%s]", path, code, msg)
 		}
 	}
 }

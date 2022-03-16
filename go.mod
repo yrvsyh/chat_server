@@ -3,9 +3,11 @@ module chat_server
 go 1.17
 
 require (
+	github.com/gin-contrib/sessions v0.0.4
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/gorilla/sessions v1.2.1
 	github.com/gorilla/websocket v1.5.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1
@@ -14,7 +16,10 @@ require (
 	gorm.io/gorm v1.23.2
 )
 
-require github.com/liyue201/gostl v1.0.1 // indirect
+require (
+	github.com/gorilla/context v1.1.1 // indirect
+	github.com/gorilla/securecookie v1.1.1 // indirect
+)
 
 require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
