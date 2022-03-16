@@ -7,9 +7,9 @@ import (
 
 type Message struct {
 	ID      int64  `gorm:"primaryKey"`
-	Type    int32  `gorm:"index"`
-	From    string `gorm:"index"`
-	To      string `gorm:"index"`
+	Type    int32  `gorm:"index;notNull"`
+	From    string `gorm:"index;notNull"`
+	To      string `gorm:"index;notNull"`
 	Content []byte
 
 	CreatedAt time.Time

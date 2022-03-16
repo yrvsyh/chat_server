@@ -30,44 +30,56 @@ func userOnlineHandle(name string) {
 
 func userOfflineHandle(name string) {
 	// 对在线好友广播下线通知
-	friends, err := service.GetUserFriendNameList(name)
-	if err != nil {
-		log.Error(err)
-	} else {
-		for _, friend := range friends {
-			c, ok := manager.clients[friend]
-			// 好友在线
-			if ok {
-				msg := &message.Message{
-					Type: int32(message.MessageType_FRIEND_OFFLINE),
-					From: name,
-					To:   friend,
-				}
-				c.send <- msg
+	friends := manager.clients[name].friends
+	for friend, _ := range friends {
+		c, ok := manager.clients[friend]
+		// 好友在线
+		if ok {
+			msg := &message.Message{
+				Type: int32(message.MessageType_FRIEND_OFFLINE),
+				From: name,
+				To:   friend,
 			}
+			c.send <- msg
 		}
 	}
 }
 
 func friendMessageHandle(msg *message.Message) {
-	name := msg.To
-	c, ok := manager.clients[name]
+	// 不能发给陌生人
+	friends := manager.clients[msg.From].friends
+	_, ok := friends[msg.To]
 	if ok {
-		c.send <- msg
+		c, ok := manager.clients[msg.To]
+		// 直接转发给在线用户
+		if ok {
+			c.send <- msg
+		}
 	}
 }
 
 func groupMessageHandle(msg *message.Message) {
-	id, err := strconv.ParseUint(msg.To, 0, 32)
+	id64, err := strconv.ParseUint(msg.To, 0, 32)
+	id := uint(id64)
 	if err != nil {
 		log.Error(err)
 		return
 	}
-	membersName, err := service.GetGroupMemberNameList(uint(id))
-	for _, name := range membersName {
-		c, ok := manager.clients[name]
-		if ok {
-			c.send <- msg
+	// 不能发给未加入的组
+	groups := manager.clients[msg.From].groups
+	_, ok := groups[id]
+	if ok {
+		membersName, err := service.GetGroupMemberNameList(id)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		for _, name := range membersName {
+			c, ok := manager.clients[name]
+			// 直接转发给在线用户
+			if ok {
+				c.send <- msg
+			}
 		}
 	}
 }

@@ -25,10 +25,10 @@ func dispatch(msg *message.Message) {
 
 func readHandle(c *client) {
 	defer func() {
-		manager.unregister <- c
-		c.conn.Close()
 		// 下线处理
 		go userOfflineHandle(c.name)
+		manager.unregister <- c
+		c.conn.Close()
 	}()
 
 	for {

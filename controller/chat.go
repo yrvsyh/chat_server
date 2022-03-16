@@ -20,6 +20,5 @@ func ChatHandle(c *gin.Context) {
 		c.Status(http.StatusBadRequest)
 		return
 	}
-	name := GetLoginUserName(c)
-	chat.RegisterClient(name, ws)
+	chat.RegisterClient(GetLoginUserName(c), ws)
 }

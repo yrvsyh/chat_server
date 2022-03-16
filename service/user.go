@@ -16,12 +16,6 @@ func GetUserAuthByName(name string) (*model.User, error) {
 	return user, err
 }
 
-//func GetUserById(id uint) (*model.User, error) {
-//	user := &model.User{}
-//	err := db.First(user, id).Error
-//	return user, err
-//}
-
 func GetUserByName(name string) (*model.User, error) {
 	user := &model.User{}
 	err := db.First(user, "name = ?", name).Error
@@ -41,7 +35,17 @@ func GetUserFriendNameList(name string) ([]string, error) {
 	var userFriends []model.UserFriends
 	err := db.Model(&model.UserFriends{}).Where("user_name = ?", name).Find(&userFriends).Error
 	for _, userFriend := range userFriends {
-		ret = append(ret, userFriend.UserName)
+		ret = append(ret, userFriend.FriendName)
+	}
+	return ret, err
+}
+
+func GetUserFriendNameSet(name string) (map[string]bool, error) {
+	var ret map[string]bool
+	var userFriends []model.UserFriends
+	err := db.Model(&model.UserFriends{}).Where("user_name = ?", name).Find(&userFriends).Error
+	for _, userFriend := range userFriends {
+		ret[userFriend.FriendName] = true
 	}
 	return ret, err
 }
