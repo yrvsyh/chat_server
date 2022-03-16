@@ -4,6 +4,7 @@ import (
 	"chat_server/database"
 	"chat_server/message"
 	"chat_server/model"
+	"chat_server/service"
 	"chat_server/utils"
 	"fmt"
 	"io"
@@ -138,26 +139,26 @@ func testChat() {
 func testDatabase() {
 	db := database.DB
 
-	user1 := &model.User{Username: "y", UserAuth: &model.UserAuth{Password: "x"}}
-	user2 := &model.User{Username: "yy", UserAuth: &model.UserAuth{Password: "x"}}
-	user3 := &model.User{Username: "yyy", UserAuth: &model.UserAuth{Password: "x"}}
+	user1 := &model.User{Name: "y", UserAuth: &model.UserAuth{Password: "x"}}
+	user2 := &model.User{Name: "yy", UserAuth: &model.UserAuth{Password: "x"}}
+	user3 := &model.User{Name: "yyy", UserAuth: &model.UserAuth{Password: "x"}}
 	db.Create(user1)
 	db.Create(user2)
 	db.Create(user3)
 
-	db.Where(user1, "Username").First(user1)
-	db.Where(user2, "Username").First(user2)
-	db.Where(user3, "Username").First(user3)
+	db.Where(user1, "name").First(user1)
+	db.Where(user2, "name").First(user2)
+	db.Where(user3, "name").First(user3)
 
 	yzy := &model.User{}
-	db.Where("username = ?", "yzy").First(yzy)
+	db.Where("name = ?", "yzy").First(yzy)
 
 	//group := &model.Group{Name: "group"}
 	//db.Create(group)
 
-	db.Model(yzy).Association("Friends").Append(&model.UserFriends{FriendID: user1.ID, Remark: "yzy1"})
-	db.Model(yzy).Association("Friends").Append(&model.UserFriends{FriendID: user2.ID, Remark: "yzy2"})
-	db.Model(yzy).Association("Friends").Append(&model.UserFriends{FriendID: user3.ID, Remark: "yzy3"})
+	db.Model(yzy).Association("Friends").Append(&model.UserFriends{FriendName: user1.Name, Remark: "yzy1"})
+	db.Model(yzy).Association("Friends").Append(&model.UserFriends{FriendName: user2.Name, Remark: "yzy2"})
+	db.Model(yzy).Association("Friends").Append(&model.UserFriends{FriendName: user3.Name, Remark: "yzy3"})
 
 	db.Preload("Friends.Friend").Find(yzy)
 	for _, friend := range user1.Friends {
@@ -181,10 +182,26 @@ func testDatabase() {
 	//db.Model(user1).Association("Friends").Append(user2)
 }
 
+func testGroup() {
+	//db := database.DB
+
+	//owner, _ := service.GetUserByName("yzy")
+	//group := &model.Group{Name: "group", Owner: owner}
+	//db.Create(group)
+	//user1, _ := service.GetUserByName("y")
+	//user2, _ := service.GetUserByName("yy")
+	//db.Model(group).Association("Members").Append(user1)
+	//db.Model(group).Association("Members").Append(user2)
+
+	member, _ := service.GetGroupMemberNameList(2)
+	log.Infof("%+v", member)
+}
+
 func main() {
 	// testRedis()
 	// testProto()
 	//testLogin()
 	//testChat()
-	testDatabase()
+	//testDatabase()
+	testGroup()
 }

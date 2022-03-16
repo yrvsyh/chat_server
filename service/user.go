@@ -4,43 +4,61 @@ import "chat_server/model"
 
 func RegisterUser(auth *model.UserAuth) error {
 	user := &model.User{
-		Username: auth.Username,
+		Name:     auth.UserName,
 		UserAuth: auth,
 	}
 	return db.Create(user).Error
 }
 
-func GetUserAuthByName(username string) (*model.User, error) {
+func GetUserAuthByName(name string) (*model.User, error) {
 	user := &model.User{}
-	err := db.Preload("UserAuth").Where("username = ?", username).First(user).Error
+	err := db.Preload("UserAuth").First(user, "name = ?", name).Error
 	return user, err
 }
 
-func GetUserById(id uint) (*model.User, error) {
+//func GetUserById(id uint) (*model.User, error) {
+//	user := &model.User{}
+//	err := db.First(user, id).Error
+//	return user, err
+//}
+
+func GetUserByName(name string) (*model.User, error) {
 	user := &model.User{}
-	err := db.First(user, id).Error
+	err := db.First(user, "name = ?", name).Error
 	return user, err
 }
 
-func GetUserByName(username string) (*model.User, error) {
-	user := &model.User{}
-	err := db.Where("username = ?", username).First(user).Error
-	return user, err
+func UpdateUser(user *model.User) error {
+	return db.Model(user).Updates(user).Error
 }
 
-func GetUserFriendsById(id uint) ([]*model.UserFriends, error) {
+func UpdateUserAvatarByName(name string, path string) error {
+	return db.Model(&model.User{}).Where("name = ?", name).Update("avatar", path).Error
+}
+
+func GetUserFriendNameList(name string) ([]string, error) {
+	var ret []string
+	var userFriends []model.UserFriends
+	err := db.Model(&model.UserFriends{}).Where("user_name = ?", name).Find(&userFriends).Error
+	for _, userFriend := range userFriends {
+		ret = append(ret, userFriend.UserName)
+	}
+	return ret, err
+}
+
+func GetUserFriendsByName(name string) ([]*model.UserFriends, error) {
 	user := &model.User{}
-	err := db.Preload("Friends").First(user, id).Error
+	err := db.Preload("Friends", "accept = ?", true).First(user, "name = ?", name).Error
 	return user.Friends, err
 }
 
-func GetUserFriendsDetailById(id uint) ([]*model.UserFriends, error) {
+func GetUserFriendsDetailByName(name string) ([]*model.UserFriends, error) {
 	user := &model.User{}
-	err := db.Preload("Friends.Friend").First(user, id).Error
+	err := db.Preload("Friends", "accept = ?", true).Preload("Friends.Friend").First(user, "name = ?", name).Error
 	return user.Friends, err
 }
 
-func CheckUserExistByName(username string) bool {
-	_, err := GetUserByName(username)
+func CheckUserExistByName(Name string) bool {
+	_, err := GetUserByName(Name)
 	return err == nil
 }

@@ -1,10 +1,12 @@
 package controller
 
 import (
+	"chat_server/config"
 	"chat_server/service"
 	"chat_server/utils"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"os"
 )
 
 func GetUserAvatar(c *gin.Context) {
@@ -19,10 +21,40 @@ func GetUserAvatar(c *gin.Context) {
 	c.File(user.Avatar)
 }
 
-func GetUserFriends(c *gin.Context) {
-	id, _ := GetLoginUserInfo(c)
+func UploadUserAvatar(c *gin.Context) {
+	username := GetLoginUserName(c)
 
-	friends, err := service.GetUserFriendsById(id)
+	file, err := c.FormFile("avatar")
+	if err != nil {
+		utils.Error(c, -1, "获取文件失败")
+		return
+	}
+
+	if file.Size > config.AvatarFileSizeLimit {
+		utils.Error(c, -1, "文件尺寸过大")
+		return
+	}
+
+	path := config.AvatarPathPrefix + string(os.PathSeparator) + file.Filename
+
+	err = c.SaveUploadedFile(file, path)
+	if err != nil {
+		utils.Error(c, -1, "保存头像失败")
+		return
+	}
+
+	if service.UpdateUserAvatarByName(username, path) != nil {
+		utils.Error(c, -1, "用户头像更新失败")
+		return
+	}
+
+	utils.Success(c, "上传头像成功")
+}
+
+func GetUserFriends(c *gin.Context) {
+	username := GetLoginUserName(c)
+
+	friends, err := service.GetUserFriendsByName(username)
 	if err != nil {
 		utils.Error(c, -1, "获取好友信息失败")
 		return
@@ -31,9 +63,9 @@ func GetUserFriends(c *gin.Context) {
 }
 
 func GetUserFriendsDetail(c *gin.Context) {
-	id, _ := GetLoginUserInfo(c)
+	username := GetLoginUserName(c)
 
-	friends, err := service.GetUserFriendsDetailById(id)
+	friends, err := service.GetUserFriendsDetailByName(username)
 	if err != nil {
 		utils.Error(c, -1, "获取好友信息失败")
 		return

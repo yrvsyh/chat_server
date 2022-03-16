@@ -2,6 +2,30 @@ syntax = "proto3";
 
 option go_package = "/message";
 
+enum MessageType {
+  HEARTBEAT = 0;
+
+  FRIEND_TEXT = 10;
+  FRIEND_IMAGE = 11;
+  FRIEND_FILE = 12;
+
+  GROUP_TEXT = 20;
+  GROUP_IMAGE = 21;
+  GROUP_FILE = 22;
+  GROUP_USER_CHANGE = 23;
+
+  FRIEND_ONLINE = 50;
+  FRIEND_OFFLINE = 51;
+  FRIEND_REQUEST = 52;
+  FRIEND_ACCEPT = 53;
+  FRIEND_KEY_CHANGE = 54;
+  FRIEND_DISBAND = 55;
+
+  GROUP_ADD_REQUEST = 61;
+  GROUP_ADD_ACCEPT = 62;
+  GROUP_DISBAND = 63;
+}
+
 message Message {
   int64 id = 1;
   int32 type = 2;

@@ -4,11 +4,13 @@ type Group struct {
 	BaseModel
 	Name      string
 	PublicKey []byte
+	OwnerID   string
+	Owner     *User `json:"owner,omitempty"`
 
-	Users []*User `gorm:"many2many:user_groups"`
+	Members []*User `gorm:"many2many:user_groups"`
 }
 
 func init() {
-	db.SetupJoinTable(&Group{}, "Users", &UserGroups{})
+	db.SetupJoinTable(&Group{}, "Members", &UserGroups{})
 	db.AutoMigrate(Group{})
 }

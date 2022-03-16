@@ -2,44 +2,46 @@ package model
 
 import "time"
 
-// Model定义
 type (
 	User struct {
-		BaseModel
-		Username  string    `gorm:"uniqueIndex" form:"username"`
-		PublicKey []byte    `form:"public_key"`
-		UserAuth  *UserAuth `gorm:"foreignKey:Username;references:Username"`
+		Name      string `gorm:"primaryKey" form:"username"`
+		UserAuth  *UserAuth
+		PublicKey []byte `form:"public_key"`
+		Nickname  string
+		Email     string
+		Phone     string
+		Avatar    string
 
-		Email  string
-		Phone  string
-		Avatar string
+		CreatedAt time.Time
+		UpdatedAt time.Time
 
-		Friends         []*UserFriends `gorm:"foreignKey:UserID"`
-		Groups          []*UserGroups  `gorm:"foreignKey:UserID"`
-		SendMessages    []*Message     `gorm:"foreignKey:From;references:Username"`
-		ReceiveMessages []*Message     `gorm:"foreignKey:To;references:Username"`
+		Friends         []*UserFriends
+		Groups          []*UserGroups
+		SendMessages    []*Message `gorm:"foreignKey:From"`
+		ReceiveMessages []*Message `gorm:"foreignKey:To"`
 	}
 
 	UserAuth struct {
-		Username string `form:"username"`
+		UserName string `form:"username"`
 		Password string `form:"password"`
 	}
 
 	UserFriends struct {
-		UserID   uint  `gorm:"primaryKey"`
-		FriendID uint  `gorm:"primaryKey"`
-		Friend   *User `json:"friend,omitempty"`
-		Remark   string
+		UserName   string `gorm:"primaryKey"`
+		FriendName string `gorm:"primaryKey"`
+		Friend     *User  `json:"friend,omitempty"`
+		Remark     string
+		Accept     bool
 
 		CreatedAt time.Time
 		UpdatedAt time.Time
 	}
 
 	UserGroups struct {
-		UserID  uint `gorm:"primaryKey"`
-		GroupID uint `gorm:"primaryKey"`
-		Group   *Group
-		Remark  string
+		UserName string `gorm:"primaryKey"`
+		GroupID  uint   `gorm:"primaryKey"`
+		Group    *Group `json:"group,omitempty"`
+		Remark   string
 
 		CreatedAt time.Time
 		UpdatedAt time.Time

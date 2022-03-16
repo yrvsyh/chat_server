@@ -23,6 +23,7 @@ func InitRouter() *gin.Engine {
 	user := r.Group("/user")
 	user.Use(middleware.SessionAuthMiddleware())
 	user.GET("/avatar/:username", controller.GetUserAvatar)
+	user.POST("/avatar/upload", controller.UploadUserAvatar)
 	user.GET("/friends", controller.GetUserFriends)
 	user.GET("/friends_detail", controller.GetUserFriendsDetail)
 

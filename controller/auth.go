@@ -21,7 +21,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	_, err = service.GetUserAuthByName(auth.Username)
+	_, err = service.GetUserAuthByName(auth.UserName)
 	if err == nil {
 		utils.Error(c, -1, "用户已存在")
 		c.Abort()
@@ -51,7 +51,7 @@ func Login(c *gin.Context) {
 
 	log.Info(auth)
 
-	dbUser, err := service.GetUserAuthByName(auth.Username)
+	dbUser, err := service.GetUserAuthByName(auth.UserName)
 	if err != nil {
 		utils.Error(c, -1, "用户不存在")
 		c.Abort()
@@ -65,8 +65,7 @@ func Login(c *gin.Context) {
 	}
 
 	session := middleware.GetAuthSession(c)
-	session.Values["id"] = dbUser.ID
-	session.Values["username"] = dbUser.Username
+	session.Values["name"] = dbUser.Name
 
 	err = session.Save(c.Request, c.Writer)
 	if err != nil {
@@ -78,17 +77,14 @@ func Login(c *gin.Context) {
 	utils.Success(c, "登陆成功")
 }
 
-func GetLoginUserInfo(c *gin.Context) (uint, string) {
+func GetLoginUserName(c *gin.Context) string {
 	session := middleware.GetAuthSession(c)
-	id := session.Values["id"].(uint)
-	username := session.Values["username"].(string)
-	return id, username
+	return session.Values[config.SessionUserKey].(string)
 }
 
 func Logout(c *gin.Context) {
 	session := middleware.GetAuthSession(c)
-	delete(session.Values, "id")
-	delete(session.Values, "username")
+	delete(session.Values, config.SessionUserKey)
 	err := session.Save(c.Request, c.Writer)
 	if err != nil {
 		utils.Error(c, -1, "服务器错误")

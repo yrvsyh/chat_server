@@ -1,28 +1,26 @@
 package middleware
 
 import (
+	"chat_server/config"
 	"chat_server/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
 )
 
-var store = sessions.NewCookieStore([]byte("session_key"))
+var store = sessions.NewCookieStore([]byte(config.SessionKey))
 
 func SessionAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := GetAuthSession(c)
-		_, ok := session.Values["id"]
-		_, ok = session.Values["username"]
+		_, ok := session.Values[config.SessionUserKey]
 		if !ok {
 			utils.Error(c, -1, "用户未登录")
 			c.Abort()
 		}
-		//c.Set("id", id)
-		//c.Set("username", username)
 	}
 }
 
 func GetAuthSession(c *gin.Context) *sessions.Session {
-	session, _ := store.Get(c.Request, "auth_info")
+	session, _ := store.Get(c.Request, config.CookieKey)
 	return session
 }

@@ -42,7 +42,7 @@ func LoggerMiddleware(logger *log.Logger) gin.HandlerFunc {
 			}
 			code, _ := c.Get("Code")
 			msg, _ := c.Get("Msg")
-			logger.WithFields(field).Infof("REQUEST [%s] [Code=%d Msg=%s]", path, code, msg)
+			logger.WithFields(field).Infof("REQUEST [%s %s] [Code=%d Msg=%s]", c.Request.Method, path, code, msg)
 		}
 	}
 }
