@@ -8,35 +8,43 @@ import (
 	"chat_server/utils"
 	"crypto/sha256"
 	"encoding/hex"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
 
 func Register(c *gin.Context) {
-	auth := &model.UserAuth{}
-	err := c.Bind(auth)
-	if err != nil {
-		utils.Error(c, -1, "信息不完善")
-		c.Abort()
-		return
+	if c.Request.Method == http.MethodGet {
+		c.HTML(http.StatusOK, "auth/register.html", nil)
+	} else if c.Request.Method == http.MethodPost {
+		auth := &model.UserAuth{}
+		err := c.Bind(auth)
+		if err != nil {
+			utils.Error(c, -1, "信息不完善")
+			c.Abort()
+			return
+		}
+
+		_, err = service.GetUserAuthByName(auth.UserName)
+		if err == nil {
+			utils.Error(c, -1, "用户已存在")
+			c.Abort()
+			return
+		}
+
+		auth.Password = hashPassword(auth.Password)
+
+		if err := service.RegisterUser(auth); err != nil {
+			utils.Error(c, -1, "注册失败")
+			c.Abort()
+			return
+		}
+
+		utils.Success(c, "注册成功")
+	} else {
+		c.Status(http.StatusBadRequest)
 	}
-
-	_, err = service.GetUserAuthByName(auth.UserName)
-	if err == nil {
-		utils.Error(c, -1, "用户已存在")
-		c.Abort()
-		return
-	}
-
-	auth.Password = hashPassword(auth.Password)
-
-	if err := service.RegisterUser(auth); err != nil {
-		utils.Error(c, -1, "注册失败")
-		c.Abort()
-		return
-	}
-
-	utils.Success(c, "注册成功")
 }
 
 func Login(c *gin.Context) {

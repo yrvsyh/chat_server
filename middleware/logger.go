@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -40,8 +41,16 @@ func LoggerMiddleware(logger *log.Logger) gin.HandlerFunc {
 			if query != "" {
 				field["query"] = query
 			}
+
 			code, _ := c.Get("Code")
 			msg, _ := c.Get("Msg")
+
+			status := c.Writer.Status()
+			if status != http.StatusOK {
+				code = status
+				msg = http.StatusText(status)
+			}
+
 			logger.WithFields(field).Infof("REQUEST [%s %s] [Code=%d Msg=%s]", c.Request.Method, path, code, msg)
 		}
 	}

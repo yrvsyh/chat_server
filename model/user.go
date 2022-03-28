@@ -4,21 +4,21 @@ import "time"
 
 type (
 	User struct {
-		Name      string `gorm:"primaryKey" form:"username"`
-		UserAuth  *UserAuth
-		PublicKey []byte `form:"public_key"`
-		Nickname  string
-		Email     string
-		Phone     string
-		Avatar    string
+		Name      string    `gorm:"primaryKey" form:"username" json:"name,omitempty"`
+		UserAuth  *UserAuth `json:"user_auth,omitempty"`
+		PublicKey []byte    `form:"public_key" json:"public_key,omitempty"`
+		Nickname  string    `json:"nickname,omitempty"`
+		Email     string    `json:"email,omitempty"`
+		Phone     string    `json:"phone,omitempty"`
+		Avatar    string    `json:"avatar,omitempty"`
 
-		CreatedAt time.Time
-		UpdatedAt time.Time
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
 
-		Friends         []*UserFriends
-		Groups          []*UserGroups
-		SendMessages    []*Message `gorm:"foreignKey:From"`
-		ReceiveMessages []*Message `gorm:"foreignKey:To"`
+		Friends         []*UserFriends `json:"friends,omitempty"`
+		Groups          []*UserGroups  `json:"groups,omitempty"`
+		SendMessages    []*Message     `gorm:"foreignKey:From" json:"send_messages,omitempty"`
+		ReceiveMessages []*Message     `gorm:"foreignKey:To" json:"receive_messages,omitempty"`
 	}
 
 	UserAuth struct {
@@ -27,24 +27,24 @@ type (
 	}
 
 	UserFriends struct {
-		UserName   string `gorm:"primaryKey"`
-		FriendName string `gorm:"primaryKey"`
-		Friend     *User  `json:"friend,omitempty"`
-		Remark     string
-		Accept     bool
+		UserName   string `gorm:"primaryKey" json:"user_name,omitempty"`
+		FriendName string `gorm:"primaryKey" json:"friend_name,omitempty"`
+		Friend     *User  `json:"friend,omitempty" json:"friend,omitempty"`
+		Remark     string `json:"remark,omitempty"`
+		Accept     bool   `json:"accept,omitempty"`
 
-		CreatedAt time.Time
-		UpdatedAt time.Time
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
 	}
 
 	UserGroups struct {
-		UserName string `gorm:"primaryKey"`
-		GroupID  uint   `gorm:"primaryKey"`
+		UserName string `gorm:"primaryKey" json:"user_name,omitempty"`
+		GroupID  uint   `gorm:"primaryKey" json:"group_id,omitempty"`
 		Group    *Group `json:"group,omitempty"`
-		Remark   string
+		Remark   string `json:"remark,omitempty"`
 
-		CreatedAt time.Time
-		UpdatedAt time.Time
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
 	}
 )
 

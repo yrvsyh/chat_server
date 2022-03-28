@@ -13,10 +13,12 @@ func InitRouter() *gin.Engine {
 	r.Use(middleware.LoggerMiddleware(log.StandardLogger()))
 	r.Use(gin.Recovery())
 
+	r.LoadHTMLGlob("templates/**/*")
+
 	r.GET("/ws/chat", middleware.SessionAuthMiddleware(), controller.ChatHandle)
 
 	auth := r.Group("/auth")
-	auth.POST("/register", controller.Register)
+	auth.Any("/register", controller.Register)
 	auth.POST("/login", controller.Login)
 	auth.GET("/logout", middleware.SessionAuthMiddleware(), controller.Logout)
 
