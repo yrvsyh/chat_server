@@ -183,6 +183,7 @@ func testDatabase() {
 }
 
 func testGroup() {
+	groupService := service.GroupService{}
 	//db := database.DB
 
 	//owner, _ := service.GetUserByName("yzy")
@@ -193,7 +194,7 @@ func testGroup() {
 	//db.Model(group).Association("Members").Append(user1)
 	//db.Model(group).Association("Members").Append(user2)
 
-	member, _ := service.GetGroupMemberNameList(2)
+	member, _ := groupService.GetGroupMemberNameList(2)
 	log.Infof("%+v", member)
 }
 

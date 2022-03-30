@@ -1,8 +1,8 @@
 package model
 
 type Group struct {
-	BaseModel `json:"base_model"`
-	Name      string `json:"name,omitempty"`
+	BaseModel
+	Name      string `gorm:"size:255" json:"name,omitempty"`
 	PublicKey []byte `json:"public_key,omitempty"`
 	OwnerID   string `json:"owner_id,omitempty"`
 	Owner     *User  `json:"owner,omitempty"`

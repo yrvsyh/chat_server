@@ -1,4 +1,4 @@
-package utils
+package controller
 
 import (
 	"net/http"
@@ -6,13 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type (
-	Result struct {
-		Code int         `json:"code"`
-		Msg  string      `json:"msg"`
-		Data interface{} `json:"data,omitempty"`
-	}
-)
+type Result struct {
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data,omitempty"`
+}
 
 func Success(c *gin.Context, msg string) {
 	c.Set("Code", 0)

@@ -2,7 +2,7 @@ package chat
 
 import (
 	"chat_server/message"
-	"chat_server/service"
+
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
@@ -10,14 +10,10 @@ import (
 
 func dispatch(msg *message.Message) {
 	t := msg.Type
-	if 10 <= t && t < 20 {
+	if 10 < t && t < 20 {
 		friendMessageHandle(msg)
 	} else if 20 <= t && t < 30 {
 		groupMessageHandle(msg)
-	} else if 50 <= t && t < 60 {
-		friendNotifyHandle(msg)
-	} else if 60 <= t && t < 70 {
-		groupNotifyHandle(msg)
 	} else {
 		log.Error("消息类型错误")
 	}
@@ -48,7 +44,7 @@ func readHandle(c *client) {
 		}
 		log.Info(msg)
 		// 记录至数据库
-		err = service.SaveMessage(msg)
+		err = messageService.SaveMessage(msg)
 		if err != nil {
 			log.Error(err)
 		}
@@ -57,15 +53,28 @@ func readHandle(c *client) {
 }
 
 func writeHandle(c *client) {
-	defer c.conn.Close()
+	defer func() {
+		c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+		c.conn.Close()
+	}()
 
-	for msg := range c.send {
-		data, err := proto.Marshal(msg)
-		if err != nil {
-			log.Error(err)
-			continue
+	for {
+		select {
+		case msg, ok := <-c.send:
+			if !ok {
+				return
+			}
+			data, err := proto.Marshal(msg)
+			if err != nil {
+				log.Error(err)
+				continue
+			}
+			c.conn.WriteMessage(websocket.BinaryMessage, data)
+		case data, ok := <-c.sendRaw:
+			if !ok {
+				return
+			}
+			c.conn.WriteMessage(websocket.BinaryMessage, data)
 		}
-		c.conn.WriteMessage(websocket.BinaryMessage, data)
 	}
-	c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 }

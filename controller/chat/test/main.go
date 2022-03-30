@@ -3,13 +3,14 @@ package main
 import (
 	"chat_server/message"
 	"fmt"
-	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 func main() {
@@ -76,7 +77,7 @@ func main() {
 
 		msg := &message.Message{}
 		msg.Id = time.Now().UnixNano()
-		msg.Type = int32(message.MessageType_FRIEND_TEXT)
+		msg.Type = message.MessageType_FRIEND_TEXT
 		msg.From = name
 		msg.To = toName
 		msg.Content = []byte(msgContent)

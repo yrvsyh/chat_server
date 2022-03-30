@@ -1,22 +1,24 @@
 package chat
 
 import (
+	"chat_server/config"
 	"chat_server/message"
-	"chat_server/service"
-	log "github.com/sirupsen/logrus"
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 func userOnlineHandle(c *client) bool {
 	// 初始化manager内的friends和groups信息
-	friendsSet, err := service.GetUserFriendNameSet(c.name)
+	friendsSet, err := userService.GetUserFriendNameSet(c.name)
 	if err != nil {
 		log.Error(err)
 		return false
 	}
 	UpdateUserFriendsInfo(c.name, friendsSet)
 
-	groupsSet, err := service.GetUserGroupNameSet(c.name)
+	groupsSet, err := userService.GetUserGroupNameSet(c.name)
 	if err != nil {
 		log.Error(err)
 		return false
@@ -30,7 +32,7 @@ func userOnlineHandle(c *client) bool {
 		// 好友在线
 		if ok {
 			msg := &message.Message{
-				Type: int32(message.MessageType_FRIEND_ONLINE),
+				Type: message.MessageType_FRIEND_ONLINE,
 				From: c.name,
 				To:   friend,
 			}
@@ -48,7 +50,7 @@ func userOfflineHandle(c *client) {
 		// 好友在线
 		if ok {
 			msg := &message.Message{
-				Type: int32(message.MessageType_FRIEND_OFFLINE),
+				Type: message.MessageType_FRIEND_OFFLINE,
 				From: c.name,
 				To:   friend,
 			}
@@ -71,7 +73,7 @@ func friendMessageHandle(msg *message.Message) {
 }
 
 func groupMessageHandle(msg *message.Message) {
-	id64, err := strconv.ParseUint(msg.To, 0, 32)
+	id64, err := strconv.ParseUint(msg.To, 10, 32)
 	id := uint(id64)
 	if err != nil {
 		log.Error(err)
@@ -81,7 +83,7 @@ func groupMessageHandle(msg *message.Message) {
 	groups := manager.clients[msg.From].groups
 	_, ok := groups[id]
 	if ok {
-		membersName, err := service.GetGroupMemberNameList(id)
+		membersName, err := groupService.GetGroupMemberNameList(id)
 		if err != nil {
 			log.Error(err)
 			return
@@ -96,6 +98,34 @@ func groupMessageHandle(msg *message.Message) {
 	}
 }
 
-func friendNotifyHandle(msg *message.Message) {}
+func sendToGroup(group string, msg *message.Message) {
+	key := config.RedisChannelGroupMessageKeyPrefix + group
+	data, err := proto.Marshal(msg)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	err = RDB.Publish(key, data).Err()
+	if err != nil {
+		log.Error(err)
+		return
+	}
+}
 
-func groupNotifyHandle(msg *message.Message) {}
+func recvFromGroup(name string) {
+	groups := manager.clients[name].groups
+	send := manager.clients[name].sendRaw
+	for group := range groups {
+		groupId := strconv.FormatUint(uint64(group), 10)
+		go func(group string, send chan []byte) {
+			ch := RDB.Subscribe(config.RedisChannelGroupMessageKeyPrefix + group).Channel()
+			for msg := range ch {
+				send <- []byte(msg.Payload)
+			}
+		}(groupId, send)
+	}
+}
+
+func testSet() {
+	RDB.SMembers("key").Result()
+}

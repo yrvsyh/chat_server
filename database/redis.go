@@ -17,4 +17,5 @@ func init() {
 	if err != nil {
 		log.Error(err)
 	}
+	log.Info("redis init done")
 }

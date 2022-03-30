@@ -5,10 +5,12 @@ import (
 	"chat_server/model"
 )
 
-func SaveMessage(message *message.Message) error {
+type MessageService struct{}
+
+func (MessageService) SaveMessage(message *message.Message) error {
 	msg := &model.Message{
 		ID:      message.Id,
-		Type:    message.Type,
+		Type:    int32(message.Type),
 		From:    message.From,
 		To:      message.To,
 		Content: message.Content,

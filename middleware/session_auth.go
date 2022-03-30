@@ -2,7 +2,8 @@ package middleware
 
 import (
 	"chat_server/config"
-	"chat_server/utils"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
 )
@@ -14,7 +15,7 @@ func SessionAuthMiddleware() gin.HandlerFunc {
 		session := GetAuthSession(c)
 		_, ok := session.Values[config.SessionUserKey]
 		if !ok {
-			utils.Error(c, -1, "用户未登录")
+			c.Status(http.StatusUnauthorized)
 			c.Abort()
 		}
 	}

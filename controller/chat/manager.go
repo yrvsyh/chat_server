@@ -2,6 +2,7 @@ package chat
 
 import (
 	"chat_server/message"
+
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
@@ -13,6 +14,7 @@ type (
 		groups  map[uint]bool
 		conn    *websocket.Conn
 		send    chan *message.Message
+		sendRaw chan []byte
 	}
 
 	friendsInfo struct {
@@ -29,18 +31,18 @@ type (
 		clients       map[string]*client
 		register      chan *client
 		unregister    chan *client
-		broadcast     chan []byte
 		friendsChange chan *friendsInfo
 		groupsChange  chan *groupsInfo
+		// broadcast     chan []byte
 	}
 )
 
 var manager = clientManager{
 	clients:       make(map[string]*client),
-	register:      make(chan *client),
-	unregister:    make(chan *client),
-	friendsChange: make(chan *friendsInfo),
-	groupsChange:  make(chan *groupsInfo),
+	register:      make(chan *client, 16),
+	unregister:    make(chan *client, 16),
+	friendsChange: make(chan *friendsInfo, 16),
+	groupsChange:  make(chan *groupsInfo, 16),
 }
 
 func init() {
@@ -78,7 +80,7 @@ func unregisterClient(c *client) {
 }
 
 func RegisterClient(name string, conn *websocket.Conn) {
-	client := &client{name: name, conn: conn, send: make(chan *message.Message)}
+	client := &client{name: name, conn: conn, send: make(chan *message.Message, 128), sendRaw: make(chan []byte, 128)}
 	manager.register <- client
 
 	go writeHandle(client)
@@ -90,6 +92,13 @@ func RegisterClient(name string, conn *websocket.Conn) {
 	}
 
 	go readHandle(client)
+}
+
+func SendMessage(msg *message.Message) {
+	client, ok := manager.clients[msg.To]
+	if ok {
+		client.send <- msg
+	}
 }
 
 func UpdateUserFriendsInfo(name string, friends map[string]bool) {

@@ -3,24 +3,30 @@ syntax = "proto3";
 option go_package = "/message";
 
 enum MessageType {
-  HEARTBEAT = 0;
+  MES_ACK = 0;
 
+  // 好友消息
   FRIEND_TEXT = 10;
   FRIEND_IMAGE = 11;
   FRIEND_FILE = 12;
 
+  // 小组信息
   GROUP_TEXT = 20;
   GROUP_IMAGE = 21;
   GROUP_FILE = 22;
   GROUP_USER_CHANGE = 23;
 
+  // 服务端主动推送
+
+  // 好友通知
   FRIEND_ONLINE = 50;
   FRIEND_OFFLINE = 51;
   FRIEND_REQUEST = 52;
   FRIEND_ACCEPT = 53;
-  FRIEND_KEY_CHANGE = 54;
+  // FRIEND_KEY_CHANGE = 54;
   FRIEND_DISBAND = 55;
 
+  // 小组通知
   GROUP_ADD_REQUEST = 61;
   GROUP_ADD_ACCEPT = 62;
   GROUP_DISBAND = 63;
@@ -28,7 +34,7 @@ enum MessageType {
 
 message Message {
   int64 id = 1;
-  int32 type = 2;
+  MessageType type = 2;
   string from = 4;
   string to = 5;
   bytes content = 6;
