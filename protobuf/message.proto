@@ -2,40 +2,49 @@ syntax = "proto3";
 
 option go_package = "/message";
 
-enum MessageType {
-  MES_ACK = 0;
+enum Type {
+  // Ack响应
+  Acknowledge = 0;
+
+  // 好友上线通知
+  FRIEND_ONLINE = 1;
+  // 好友下线通知
+  FRIEND_OFFLINE = 2;
+
+  // 以下消息需要离线保存
 
   // 好友消息
   FRIEND_TEXT = 10;
   FRIEND_IMAGE = 11;
   FRIEND_FILE = 12;
 
+  // 好友申请通知
+  FRIEND_REQUEST = 20;
+  // 好友接受申请通知
+  FRIEND_ACCEPT = 21;
+  // 解除好友关系
+  FRIEND_DISBAND = 22;
+
   // 小组信息
-  GROUP_TEXT = 20;
-  GROUP_IMAGE = 21;
-  GROUP_FILE = 22;
-  GROUP_USER_CHANGE = 23;
+  GROUP_TEXT = 50;
+  GROUP_IMAGE = 51;
+  GROUP_FILE = 52;
 
-  // 服务端主动推送
+  // 小组人员变动通知
+  GROUP_USER_CHANGE = 60;
 
-  // 好友通知
-  FRIEND_ONLINE = 50;
-  FRIEND_OFFLINE = 51;
-  FRIEND_REQUEST = 52;
-  FRIEND_ACCEPT = 53;
-  // FRIEND_KEY_CHANGE = 54;
-  FRIEND_DISBAND = 55;
-
-  // 小组通知
-  GROUP_ADD_REQUEST = 61;
-  GROUP_ADD_ACCEPT = 62;
+  // 加入小组申请通知
+  GROUP_REQUEST = 61;
+  // 接受小组申请通知
+  GROUP_ACCEPT = 62;
+  // 小组解散通知
   GROUP_DISBAND = 63;
 }
 
 message Message {
   int64 id = 1;
-  MessageType type = 2;
-  string from = 4;
-  string to = 5;
+  Type type = 2;
+  uint32 from = 4;
+  uint32 to = 5;
   bytes content = 6;
 }

@@ -1,4 +1,4 @@
-package chat
+package chat_service
 
 import (
 	"chat_server/database"

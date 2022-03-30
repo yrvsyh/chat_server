@@ -28,14 +28,14 @@ func InitRouter() *gin.Engine {
 	user := r.Group("/user")
 	{
 		user.Use(middleware.SessionAuthMiddleware())
-		user.GET("/avatar/:username", controller.UserController{}.GetUserAvatar)
+		user.GET("/avatar/:user_id", controller.UserController{}.GetUserAvatar)
 		user.POST("/avatar/upload", controller.UserController{}.UploadUserAvatar)
 		user.GET("/friends", controller.UserController{}.GetUserFriends)
 		user.GET("/friends_detail", controller.UserController{}.GetUserFriendsDetail)
 		user.POST("/add_friends", controller.UserController{}.AddUserFriend)
 		user.POST("/accept_friends", controller.UserController{}.AcceptUserFriend)
-		user.GET("/remark/:friend_name", controller.UserController{}.GetFriendRemark)
-		user.POST("/remark/:friend_name", controller.UserController{}.UpdateFriendRemark)
+		user.GET("/remark/:friend_id", controller.UserController{}.GetFriendRemark)
+		user.POST("/remark/:friend_id", controller.UserController{}.UpdateFriendRemark)
 	}
 
 	return r

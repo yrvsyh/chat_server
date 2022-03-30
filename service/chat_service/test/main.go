@@ -2,6 +2,7 @@ package main
 
 import (
 	"chat_server/message"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -27,7 +28,15 @@ func main() {
 	}
 
 	data, _ := io.ReadAll(resp.Body)
-	//fmt.Println(string(data))
+	fmt.Println(string(data))
+	js := struct {
+		Code int                    `json:"code,omitempty"`
+		Msg  string                 `json:"msg,omitempty"`
+		Data map[string]interface{} `json:"data,omitempty"`
+	}{}
+	json.Unmarshal(data, &js)
+	fmt.Println(js)
+	id := uint32(js.Data["id"].(float64))
 
 	req := &http.Request{Header: make(http.Header)}
 	for _, cookie := range resp.Cookies() {
@@ -68,18 +77,20 @@ func main() {
 
 	for {
 		fmt.Printf(">>>")
-		var toName string
+		var to uint32
 		var msgContent string
-		_, _ = fmt.Scanf("%s %s\n", &toName, &msgContent)
-		if toName == "" {
-			continue
-		}
+		var t int
+		_, _ = fmt.Scanf("%d %d %s\n", &t, &to, &msgContent)
 
 		msg := &message.Message{}
 		msg.Id = time.Now().UnixNano()
-		msg.Type = message.MessageType_FRIEND_TEXT
-		msg.From = name
-		msg.To = toName
+		if t == 0 {
+			msg.Type = message.Type_FRIEND_TEXT
+		} else {
+			msg.Type = message.Type_GROUP_TEXT
+		}
+		msg.From = id
+		msg.To = to
 		msg.Content = []byte(msgContent)
 		data, err = proto.Marshal(msg)
 		if err != nil {

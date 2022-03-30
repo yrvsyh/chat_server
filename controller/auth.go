@@ -1,43 +1,54 @@
 package controller
 
 import (
-	"chat_server/config"
 	"chat_server/middleware"
-	"chat_server/model"
-	"crypto/sha256"
-	"encoding/hex"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
 type AuthController struct{}
 
-func (AuthController) Register(c *gin.Context) {
+func (AuthController) getPublicKey(c *gin.Context) ([]byte, error) {
+	var public_key []byte
+
+	keyFormFile, err := c.FormFile("public_key")
+	if err != nil {
+		return public_key, err
+	}
+
+	keyFile, err := keyFormFile.Open()
+	if err != nil {
+		return public_key, err
+	}
+
+	public_key, err = ioutil.ReadAll(keyFile)
+	return public_key, err
+}
+
+func (a AuthController) Register(c *gin.Context) {
 	if c.Request.Method == http.MethodGet {
 		c.HTML(http.StatusOK, "auth/register.html", nil)
 	} else if c.Request.Method == http.MethodPost {
-		auth := &model.UserAuth{}
-		err := c.Bind(auth)
+		data := &struct {
+			Username string `form:"username"`
+			Password string `form:"password"`
+		}{}
+
+		if err := c.Bind(data); err != nil {
+			Err(c, err)
+			return
+		}
+
+		public_key, err := a.getPublicKey(c)
 		if err != nil {
-			Error(c, -1, "信息不完善")
-			c.Abort()
+			Err(c, err)
 			return
 		}
 
-		_, err = userService.GetUserAuthByName(auth.UserName)
-		if err == nil {
-			Error(c, -1, "用户已存在")
-			c.Abort()
-			return
-		}
-
-		auth.Password = hashPassword(auth.Password)
-
-		if err := userService.RegisterUser(auth); err != nil {
-			Error(c, -1, "注册失败")
-			c.Abort()
+		if err := userService.Register(data.Username, data.Password, public_key); err != nil {
+			Err(c, err)
 			return
 		}
 
@@ -47,73 +58,54 @@ func (AuthController) Register(c *gin.Context) {
 	}
 }
 
-func (AuthController) Login(c *gin.Context) {
-	auth := &model.UserAuth{}
-	err := c.Bind(auth)
+func (a AuthController) Login(c *gin.Context) {
+	data := &struct {
+		Username string `form:"username"`
+		Password string `form:"password"`
+	}{}
 
-	if err != nil {
-		Error(c, -1, "信息不完善")
-		c.Abort()
+	if err := c.Bind(data); err != nil {
+		Err(c, err)
 		return
 	}
 
-	log.Info(auth)
+	public_key, err := a.getPublicKey(c)
+	// if err != nil {
+	// 	Err(c, err)
+	// 	return
+	// }
 
-	dbUser, err := userService.GetUserAuthByName(auth.UserName)
+	id, username, err := userService.Login(data.Username, data.Password, public_key)
 	if err != nil {
-		Error(c, -1, "用户不存在")
-		c.Abort()
-		return
-	}
-
-	if !verifyPassword(auth.Password, dbUser.UserAuth.Password) {
-		Error(c, -1, "密码错误")
-		c.Abort()
+		Err(c, err)
 		return
 	}
 
 	session := middleware.GetAuthSession(c)
-	session.Values["name"] = dbUser.Name
+	session.Values["id"] = id
+	session.Values["username"] = username
 
-	err = session.Save(c.Request, c.Writer)
-	if err != nil {
-		Error(c, -1, "服务器错误")
-		c.Abort()
+	if err := session.Save(c.Request, c.Writer); err != nil {
+		Err(c, err)
 		return
 	}
 
-	Success(c, "登陆成功")
+	SuccessWithData(c, "登陆成功", gin.H{"id": id})
 }
 
 func (AuthController) Logout(c *gin.Context) {
 	session := middleware.GetAuthSession(c)
-	delete(session.Values, config.SessionUserKey)
-	err := session.Save(c.Request, c.Writer)
-	if err != nil {
-		Error(c, -1, "服务器错误")
-		c.Abort()
+	delete(session.Values, "id")
+	delete(session.Values, "username")
+	if err := session.Save(c.Request, c.Writer); err != nil {
+		Err(c, err)
 		return
 	}
 
 	Success(c, "注销成功")
 }
 
-func GetLoginUserName(c *gin.Context) string {
+func GetLoginUserInfo(c *gin.Context) (uint32, string) {
 	session := middleware.GetAuthSession(c)
-	return session.Values[config.SessionUserKey].(string)
-}
-
-func verifyPassword(formPassword string, dbPassword string) bool {
-	hashPassword := hashPassword(formPassword)
-	log.WithFields(log.Fields{
-		"password":     formPassword,
-		"dbPassword":   dbPassword,
-		"hashPassword": hashPassword,
-	}).Info("PASSWORD CHECK")
-	return dbPassword == hashPassword
-}
-
-func hashPassword(password string) string {
-	sha256sum := sha256.Sum256([]byte(password + config.PasswordSalt))
-	return hex.EncodeToString(sha256sum[:])
+	return session.Values["id"].(uint32), session.Values["username"].(string)
 }

@@ -1,30 +1,78 @@
 package service
 
 import (
+	"chat_server/config"
 	"chat_server/model"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
 
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
 type UserService struct{}
 
-func (UserService) RegisterUser(auth *model.UserAuth) error {
+func (UserService) hashPassword(password string) string {
+	hash := sha256.New()
+	hash.Write([]byte(password + config.PasswordSalt))
+
+	return hex.EncodeToString(hash.Sum(nil))
+}
+func (u UserService) verifyPassword(formPassword string, dbPassword string) bool {
+	hashPassword := u.hashPassword(formPassword)
+
+	log.WithFields(log.Fields{
+		"password":     formPassword,
+		"dbPassword":   dbPassword,
+		"hashPassword": hashPassword,
+	}).Info("PASSWORD CHECK")
+
+	return dbPassword == hashPassword
+}
+
+func (UserService) verifyPublicKey(publicKey []byte, dbKey []byte) bool {
+	return string(publicKey) == string(dbKey)
+}
+
+func (u UserService) Register(username string, password string, publicKey []byte) error {
+	password = u.hashPassword(password)
 	user := &model.User{
-		Name:     auth.UserName,
-		UserAuth: auth,
+		Username:  username,
+		Password:  password,
+		PublicKey: publicKey,
 	}
+
 	return db.Create(user).Error
 }
 
-func (UserService) GetUserAuthByName(name string) (*model.User, error) {
+func (u UserService) Login(username string, password string, publicKey []byte) (uint32, string, error) {
+	user, err := u.GetUserByUsername(username)
+
+	if err != nil {
+		return user.ID, user.Username, errors.New("用户不存在")
+	}
+
+	if !u.verifyPassword(password, user.Password) {
+		return user.ID, user.Username, errors.New("密码错误")
+	}
+
+	// if !u.verifyPublicKey(publicKey, user.PublicKey) {
+	// 	return user.ID, user.Username, errors.New("公钥验证失败")
+	// }
+
+	return user.ID, user.Username, nil
+}
+
+func (UserService) GetUserByID(id uint32) (*model.User, error) {
 	user := &model.User{}
-	err := db.Preload("UserAuth").First(user, "name = ?", name).Error
+	err := db.First(user, id).Error
 	return user, err
 }
 
-func (UserService) GetUserByName(name string) (*model.User, error) {
+func (UserService) GetUserByUsername(username string) (*model.User, error) {
 	user := &model.User{}
-	err := db.First(user, "name = ?", name).Error
+	err := db.First(user, "username = ?", username).Error
 	return user, err
 }
 
@@ -32,85 +80,83 @@ func (UserService) UpdateUser(user *model.User) error {
 	return db.Model(user).Updates(user).Error
 }
 
-func (UserService) UpdateUserAvatarByName(name string, path string) error {
-	return db.Model(&model.User{}).Where("name = ?", name).Update("avatar", path).Error
-}
-
-func (UserService) GetUserFriendNameList(name string) ([]string, error) {
-	var ret []string
-	var userFriends []model.UserFriends
-	err := db.Model(&model.UserFriends{}).Where("user_name = ?", name).Find(&userFriends).Error
-	for _, userFriend := range userFriends {
-		ret = append(ret, userFriend.FriendName)
-	}
-	return ret, err
-}
-
-func (UserService) GetUserFriendNameSet(name string) (map[string]bool, error) {
-	ret := make(map[string]bool)
-	var userFriends []model.UserFriends
-	err := db.Model(&model.UserFriends{}).Where("user_name = ?", name).Find(&userFriends).Error
-	for _, userFriend := range userFriends {
-		ret[userFriend.FriendName] = true
-	}
-	return ret, err
-}
-
-func (UserService) GetUserGroupNameSet(name string) (map[uint]bool, error) {
-	ret := make(map[uint]bool)
-	var userGroups []model.UserGroups
-	err := db.Model(&model.UserGroups{}).Where("user_name = ?", name).Find(&userGroups).Error
-	for _, userGroup := range userGroups {
-		ret[userGroup.GroupID] = true
-	}
-	return ret, err
-}
-
-func (UserService) GetUserFriendsByName(name string) ([]*model.UserFriends, error) {
+func (UserService) UpdateUserAvatarByID(id uint32, path string) error {
 	user := &model.User{}
-	err := db.Preload("Friends", "accept = ?", true).First(user, "name = ?", name).Error
-	return user.Friends, err
+	user.ID = id
+	return db.Model(user).Update("avatar", path).Error
 }
 
-func (UserService) GetUserFriendsDetailByName(name string) ([]*model.UserFriends, error) {
-	user := &model.User{}
-	err := db.Preload("Friends", "accept = ?", true).Preload("Friends.Friend").First(user, "name = ?", name).Error
-	return user.Friends, err
+func (UserService) GetUserFriendsByID(id uint32) ([]model.UserFriend, error) {
+	friends := []model.UserFriend{}
+	err := db.Where("user_id = ? and accept = ?", id, true).Find(&friends).Error
+	return friends, err
 }
 
-func (UserService) GetUserFriendDetailByFriendName(name string, friendName string) (*model.UserFriends, error) {
-	userFriens := &model.UserFriends{}
-	err := db.Model(userFriens).First(userFriens, "user_name = ? and friend_name = ?", name, friendName).Error
-	return userFriens, err
+func (UserService) GetUserFriendsDetailByID(id uint32) ([]model.UserFriend, error) {
+	friends := []model.UserFriend{}
+	err := db.Preload("Friend").Where("user_id = ? and accept = ?", id, true).Find(&friends).Error
+	return friends, err
 }
 
-func (UserService) UpdateUserFriend(userFriend *model.UserFriends) error {
+// func (UserService) GetUserFriendNameList(name string) ([]string, error) {
+// 	var ret []string
+// 	var userFriends []model.UserFriends
+// 	err := db.Model(&model.UserFriends{}).Where("user_name = ?", name).Find(&userFriends).Error
+// 	for _, userFriend := range userFriends {
+// 		ret = append(ret, userFriend.FriendName)
+// 	}
+// 	return ret, err
+// }
+
+func (UserService) GetUserFriendIDSet(id uint32) (map[uint32]bool, error) {
+	ret := make(map[uint32]bool)
+
+	var userFriends []model.UserFriend
+	err := db.Select("friend_id").Where("user_id = ?", id).Find(&userFriends).Error
+	for _, userFriend := range userFriends {
+		ret[userFriend.FriendID] = true
+	}
+
+	return ret, err
+}
+
+func (UserService) GetUserGroupIDSet(id uint32) (map[uint32]bool, error) {
+	ret := make(map[uint32]bool)
+
+	var groupUsers []model.GroupUser
+	err := db.Select("group_id").Where("user_id = ?", id).Find(&groupUsers).Error
+	for _, groupUser := range groupUsers {
+		ret[groupUser.GroupID] = true
+	}
+
+	return ret, err
+}
+
+func (UserService) GetUserFriendDetailByFriendID(id uint32, friendID uint32) (*model.UserFriend, error) {
+	userFriend := &model.UserFriend{}
+	err := db.Model(userFriend).First(userFriend, "user_id= ? and friend_id = ?", id, friendID).Error
+	return userFriend, err
+}
+
+func (UserService) UpdateUserFriend(userFriend *model.UserFriend) error {
 	return db.Save(userFriend).Error
 }
 
-func (s UserService) CheckUserExistByName(name string) bool {
-	_, err := s.GetUserByName(name)
-	return err == nil
-}
+// func (s UserService) CheckUserExistByName(name string) bool {
+// 	_, err := s.GetUserByName(name)
+// 	return err == nil
+// }
 
-func (UserService) AddUserFriend(name string, friendName string) error {
+func (UserService) AddUserFriend(id uint32, friendID uint32) error {
 	return db.Transaction(func(tx *gorm.DB) error {
-		user := &model.User{}
-		err := db.First(user, "name = ?", name).Error
-		if err != nil {
-			return err
-		}
-
-		friend := &model.User{}
-		err = tx.First(friend, "name = ?", friendName).Error
-		if err != nil {
-			return err
-		}
-
 		// 双向好友, 默认为未同意
-		err = db.Model(user).Association("Friends").Append(&model.UserFriends{FriendName: friend.Name})
-		err = db.Model(friend).Association("Friends").Append(&model.UserFriends{FriendName: user.Name})
-		if err != nil {
+		userFriend1 := &model.UserFriend{UserID: id, FriendID: friendID, Accept: false}
+		userFriend2 := &model.UserFriend{UserID: friendID, FriendID: id, Accept: false}
+
+		if err := tx.Create(userFriend1).Error; err != nil {
+			return err
+		}
+		if err := tx.Create(userFriend2).Error; err != nil {
 			return err
 		}
 
@@ -118,19 +164,15 @@ func (UserService) AddUserFriend(name string, friendName string) error {
 	})
 }
 
-func (UserService) AcceptUserFriend(name string, friendName string) error {
+func (UserService) AcceptUserFriend(id uint32, friendID uint32) error {
 	return db.Transaction(func(tx *gorm.DB) error {
-		userFriens1 := &model.UserFriends{UserName: name, FriendName: friendName}
-		userFriens2 := &model.UserFriends{UserName: friendName, FriendName: name}
-		// err := tx.Model(userFriens).First(userFriens, "user_name = ? and friend_name = ?", name, friendName).Error
-		// if err != nil {
-		// 	return err
-		// }
-		// userFriens.Accept = true
-		err := tx.Model(userFriens1).Update("accept", true).Error
-		err = tx.Model(userFriens2).Update("accept", true).Error
+		userFriend1 := &model.UserFriend{UserID: id, FriendID: friendID}
+		userFriend2 := &model.UserFriend{UserID: friendID, FriendID: id}
 
-		if err != nil {
+		if err := tx.Model(userFriend1).Update("accept", true).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(userFriend2).Update("accept", true).Error; err != nil {
 			return err
 		}
 

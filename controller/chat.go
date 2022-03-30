@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"chat_server/controller/chat"
+	"chat_server/service/chat_service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -23,5 +23,7 @@ func (ChatController) ChatHandle(c *gin.Context) {
 		c.Status(http.StatusBadRequest)
 		return
 	}
-	chat.RegisterClient(GetLoginUserName(c), ws)
+
+	id, _ := GetLoginUserInfo(c)
+	chat_service.RegisterClient(id, ws)
 }

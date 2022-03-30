@@ -7,13 +7,28 @@ import (
 
 type MessageService struct{}
 
-func (MessageService) SaveMessage(message *message.Message) error {
-	msg := &model.Message{
-		ID:      message.Id,
-		Type:    int32(message.Type),
-		From:    message.From,
-		To:      message.To,
-		Content: message.Content,
+func (MessageService) SaveUserMessage(msg *message.Message) error {
+	userMsg := &model.UserMessage{
+		Message: model.Message{
+			ID:      msg.Id,
+			Type:    int32(msg.Type),
+			From:    msg.From,
+			To:      msg.To,
+			Content: msg.Content,
+		},
 	}
-	return db.Create(msg).Error
+	return db.Create(userMsg).Error
+}
+
+func (MessageService) SaveGroupMessage(msg *message.Message) error {
+	groupMsg := &model.GroupMessage{
+		Message: model.Message{
+			ID:      msg.Id,
+			Type:    int32(msg.Type),
+			From:    msg.From,
+			To:      msg.To,
+			Content: msg.Content,
+		},
+	}
+	return db.Create(groupMsg).Error
 }

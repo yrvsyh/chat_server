@@ -13,8 +13,9 @@ var store = sessions.NewCookieStore([]byte(config.SessionKey))
 func SessionAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := GetAuthSession(c)
-		_, ok := session.Values[config.SessionUserKey]
-		if !ok {
+		_, ok1 := session.Values["id"]
+		_, ok2 := session.Values["username"]
+		if !(ok1 && ok2) {
 			c.Status(http.StatusUnauthorized)
 			c.Abort()
 		}
