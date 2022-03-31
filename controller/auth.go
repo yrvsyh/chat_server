@@ -52,7 +52,7 @@ func (a AuthController) Register(c *gin.Context) {
 			return
 		}
 
-		Success(c, "注册成功")
+		Success(c)
 	} else {
 		c.Status(http.StatusBadRequest)
 	}
@@ -90,7 +90,7 @@ func (a AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	SuccessWithData(c, "登陆成功", gin.H{"id": id})
+	SuccessData(c, gin.H{"id": id})
 }
 
 func (AuthController) Logout(c *gin.Context) {
@@ -102,7 +102,7 @@ func (AuthController) Logout(c *gin.Context) {
 		return
 	}
 
-	Success(c, "注销成功")
+	Success(c)
 }
 
 func GetLoginUserInfo(c *gin.Context) (uint32, string) {

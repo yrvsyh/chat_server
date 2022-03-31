@@ -35,29 +35,28 @@ func (UserController) UploadUserAvatar(c *gin.Context) {
 
 	file, err := c.FormFile("avatar")
 	if err != nil {
-		Error(c, -1, "获取文件失败")
+		Err(c, err)
 		return
 	}
 
 	if file.Size > config.AvatarFileSizeLimit {
-		Error(c, -1, "文件尺寸过大")
+		Error(c, "file too large")
 		return
 	}
 
 	path := config.AvatarPathPrefix + string(os.PathSeparator) + file.Filename
 
-	err = c.SaveUploadedFile(file, path)
-	if err != nil {
-		Error(c, -1, "保存头像失败")
+	if err := c.SaveUploadedFile(file, path); err != nil {
+		Err(c, err)
 		return
 	}
 
 	if userService.UpdateUserAvatarByID(id, path) != nil {
-		Error(c, -1, "用户头像更新失败")
+		Err(c, err)
 		return
 	}
 
-	Success(c, "上传头像成功")
+	Success(c)
 }
 
 func (UserController) GetUserFriends(c *gin.Context) {
@@ -65,10 +64,10 @@ func (UserController) GetUserFriends(c *gin.Context) {
 
 	friends, err := userService.GetUserFriendsByID(id)
 	if err != nil {
-		Error(c, -1, "获取好友信息失败")
+		Err(c, err)
 		return
 	}
-	SuccessWithData(c, "获取好友信息成功", gin.H{"count": len(friends), "list": friends})
+	SuccessData(c, gin.H{"count": len(friends), "list": friends})
 }
 
 func (UserController) GetUserFriendsDetail(c *gin.Context) {
@@ -76,10 +75,10 @@ func (UserController) GetUserFriendsDetail(c *gin.Context) {
 
 	friends, err := userService.GetUserFriendsDetailByID(id)
 	if err != nil {
-		Error(c, -1, "获取好友信息失败")
+		Err(c, err)
 		return
 	}
-	SuccessWithData(c, "获取好友信息成功", gin.H{"count": len(friends), "list": friends})
+	SuccessData(c, gin.H{"count": len(friends), "list": friends})
 }
 
 func (UserController) AddUserFriend(c *gin.Context) {
@@ -92,7 +91,7 @@ func (UserController) AddUserFriend(c *gin.Context) {
 	}
 
 	if err := userService.AddUserFriend(id, uint32(friendID)); err != nil {
-		Error(c, -1, "添加好友失败")
+		Err(c, err)
 		return
 	}
 
@@ -104,7 +103,7 @@ func (UserController) AddUserFriend(c *gin.Context) {
 	}
 	chat_service.SendMessage(msg)
 
-	Success(c, "成功发起请求")
+	Success(c)
 }
 
 func (UserController) AcceptUserFriend(c *gin.Context) {
@@ -117,7 +116,7 @@ func (UserController) AcceptUserFriend(c *gin.Context) {
 	}
 
 	if err := userService.AcceptUserFriend(id, uint32(friendID)); err != nil {
-		Error(c, -1, "添加好友失败")
+		Err(c, err)
 		return
 	}
 
@@ -128,7 +127,7 @@ func (UserController) AcceptUserFriend(c *gin.Context) {
 	}
 	chat_service.SendMessage(msg)
 
-	Success(c, "添加好友成功")
+	Success(c)
 }
 
 func (UserController) GetFriendRemark(c *gin.Context) {
@@ -142,35 +141,38 @@ func (UserController) GetFriendRemark(c *gin.Context) {
 
 	userFriend, err := userService.GetUserFriendDetailByFriendID(id, uint32(friendID))
 	if err != nil {
-		Error(c, -1, "查询好友失败")
+		Err(c, err)
 		return
 	}
 
-	SuccessWithData(c, "查询备注成功", gin.H{"remark": userFriend.Remark})
+	SuccessData(c, gin.H{"remark": userFriend.Remark})
 }
 
 func (UserController) UpdateFriendRemark(c *gin.Context) {
 	id, _ := GetLoginUserInfo(c)
 
 	friendID, err := strconv.ParseUint(c.Param("friend_id"), 10, 32)
-	remark := c.PostForm("remark")
-	if err != nil || remark == "" {
-		Error(c, -1, "参数错误")
+	if err != nil {
+		Err(c, err)
 		return
+	}
+
+	remark := c.PostForm("remark")
+	if remark == "" {
+		Error(c, "invalid post data")
 	}
 
 	userFriend, err := userService.GetUserFriendDetailByFriendID(id, uint32(friendID))
 	if err != nil {
-		Error(c, -1, "查询好友失败")
+		Err(c, err)
 		return
 	}
 
 	userFriend.Remark = remark
-	err = userService.UpdateUserFriend(userFriend)
-	if err != nil {
-		Error(c, -1, "更新备注失败")
+	if err := userService.UpdateUserFriend(userFriend); err != nil {
+		Err(c, err)
 		return
 	}
 
-	Success(c, "更新备注成功")
+	Success(c)
 }

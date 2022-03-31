@@ -5,8 +5,8 @@ import (
 	"chat_server/model"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -42,23 +42,23 @@ func (u UserService) Register(username string, password string, publicKey []byte
 		Password:  password,
 		PublicKey: publicKey,
 	}
-
-	return db.Create(user).Error
+	err := db.Create(user).Error
+	return errors.Wrap(err, "create data error")
 }
 
 func (u UserService) Login(username string, password string, publicKey []byte) (uint32, string, error) {
 	user, err := u.GetUserByUsername(username)
 
 	if err != nil {
-		return user.ID, user.Username, errors.New("用户不存在")
+		return user.ID, user.Username, errors.Wrap(err, "no such user")
 	}
 
 	if !u.verifyPassword(password, user.Password) {
-		return user.ID, user.Username, errors.New("密码错误")
+		return user.ID, user.Username, errors.Wrap(err, "password error")
 	}
 
 	// if !u.verifyPublicKey(publicKey, user.PublicKey) {
-	// 	return user.ID, user.Username, errors.New("公钥验证失败")
+	// 	return user.ID, user.Username, errors.Wrap(err, "public key invalid")
 	// }
 
 	return user.ID, user.Username, nil
