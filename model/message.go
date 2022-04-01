@@ -7,14 +7,14 @@ import (
 )
 
 type Message struct {
-	ID      int64  `gorm:"primaryKey" json:"id,omitempty"`
-	Type    int32  `gorm:"index;notNull" json:"type,omitempty"`
-	From    uint32 `gorm:"index;notNull;size:255" json:"from,omitempty"`
-	To      uint32 `gorm:"index;notNull;size:255" json:"to,omitempty"`
+	ID      int64  `gorm:"primaryKey" json:"id"`
+	Type    int32  `gorm:"index;notNull" json:"type"`
+	From    uint32 `gorm:"index;notNull;size:255" json:"from"`
+	To      uint32 `gorm:"index;notNull;size:255" json:"to"`
 	Content []byte `json:"content,omitempty"`
 
-	CreatedAt time.Time      `json:"created_at,omitempty"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	CreatedAt time.Time      `json:"created_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 }
 
 func init() {

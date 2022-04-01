@@ -2,7 +2,8 @@ package controller
 
 import (
 	"chat_server/middleware"
-	"io/ioutil"
+	"io"
+	"mime/multipart"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -10,44 +11,34 @@ import (
 
 type AuthController struct{}
 
-func (AuthController) getPublicKey(c *gin.Context) ([]byte, error) {
-	var public_key []byte
-
-	keyFormFile, err := c.FormFile("public_key")
-	if err != nil {
-		return public_key, err
-	}
-
-	keyFile, err := keyFormFile.Open()
-	if err != nil {
-		return public_key, err
-	}
-
-	public_key, err = ioutil.ReadAll(keyFile)
-	return public_key, err
-}
-
-func (a AuthController) Register(c *gin.Context) {
+func (AuthController) Register(c *gin.Context) {
 	if c.Request.Method == http.MethodGet {
 		c.HTML(http.StatusOK, "auth/register.html", nil)
 	} else if c.Request.Method == http.MethodPost {
-		data := &struct {
-			Username string `form:"username"`
-			Password string `form:"password"`
+		form := struct {
+			Username  string                `form:"username" binding:"required"`
+			Password  string                `form:"password" binding:"required"`
+			PublicKey *multipart.FileHeader `form:"public_key" binding:"required"`
 		}{}
 
-		if err := c.Bind(data); err != nil {
+		if err := c.ShouldBind(&form); err != nil {
 			Err(c, err)
 			return
 		}
 
-		public_key, err := a.getPublicKey(c)
+		keyFile, err := form.PublicKey.Open()
 		if err != nil {
 			Err(c, err)
 			return
 		}
 
-		if err := userService.Register(data.Username, data.Password, public_key); err != nil {
+		publicKey, err := io.ReadAll(keyFile)
+		if err != nil {
+			Err(c, err)
+			return
+		}
+
+		if err := userService.Register(form.Username, form.Password, publicKey); err != nil {
 			Err(c, err)
 			return
 		}
@@ -58,24 +49,32 @@ func (a AuthController) Register(c *gin.Context) {
 	}
 }
 
-func (a AuthController) Login(c *gin.Context) {
-	data := &struct {
-		Username string `form:"username"`
-		Password string `form:"password"`
+func (AuthController) Login(c *gin.Context) {
+	form := struct {
+		Username  string                `form:"username" binding:"required"`
+		Password  string                `form:"password" binding:"required"`
+		PublicKey *multipart.FileHeader `form:"public_key" binding:"-"`
 	}{}
 
-	if err := c.Bind(data); err != nil {
+	if err := c.ShouldBind(&form); err != nil {
 		Err(c, err)
 		return
 	}
 
-	public_key, err := a.getPublicKey(c)
+	// keyFile, err := data.PublicKey.Open()
 	// if err != nil {
 	// 	Err(c, err)
 	// 	return
 	// }
 
-	id, username, err := userService.Login(data.Username, data.Password, public_key)
+	// publicKey, err := io.ReadAll(keyFile)
+	// if err != nil {
+	// 	Err(c, err)
+	// 	return
+	// }
+	var publicKey []byte
+
+	id, username, err := userService.Login(form.Username, form.Password, publicKey)
 	if err != nil {
 		Err(c, err)
 		return

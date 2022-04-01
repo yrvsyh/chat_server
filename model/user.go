@@ -1,14 +1,14 @@
 package model
 
 type User struct {
-	BaseModel
+	BaseModel `json:"base_model,omitempty"`
 	Username  string `gorm:"uniqueIndex;size:255" form:"username" json:"username,omitempty"`
-	Password  string `gorm:"size:255;notNull" form:"password"`
+	Password  string `gorm:"size:255;notNull;default:''" form:"password" json:"password"`
 	PublicKey []byte `form:"public_key" json:"public_key,omitempty"`
-	Nickname  string `gorm:"size:255" json:"nickname,omitempty"`
-	Email     string `gorm:"size:255" json:"email,omitempty"`
-	Phone     string `gorm:"size:255" json:"phone,omitempty"`
-	Avatar    string `gorm:"size:255" json:"avatar,omitempty"`
+	Nickname  string `gorm:"size:255;notNull;default:''" json:"nickname,omitempty"`
+	Email     string `gorm:"size:255;notNull;default:''" json:"email,omitempty"`
+	Phone     string `gorm:"size:255;notNull;default:''" json:"phone,omitempty"`
+	Avatar    string `gorm:"size:255;notNull;default:''" json:"avatar,omitempty"`
 }
 
 func init() {

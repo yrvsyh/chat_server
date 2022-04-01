@@ -8,20 +8,20 @@ import (
 
 type Result struct {
 	Code int         `json:"code"`
-	Msg  string      `json:"msg"`
+	Msg  string      `json:"msg,omitempty"`
 	Data interface{} `json:"data,omitempty"`
 }
 
 func Success(c *gin.Context) {
 	c.Set("Code", 0)
 	c.Set("Msg", "success")
-	c.JSON(http.StatusOK, Result{Code: 0})
+	c.JSON(http.StatusOK, Result{Code: 0, Msg: "success"})
 }
 
 func SuccessData(c *gin.Context, data interface{}) {
 	c.Set("Code", 0)
 	c.Set("Msg", "success")
-	c.JSON(http.StatusOK, Result{Code: 0, Data: data})
+	c.JSON(http.StatusOK, Result{Code: 0, Msg: "success", Data: data})
 }
 
 func Err(c *gin.Context, err error) {

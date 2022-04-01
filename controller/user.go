@@ -5,9 +5,9 @@ import (
 	"chat_server/message"
 	"chat_server/service/chat_service"
 	"chat_server/utils"
+	"mime/multipart"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,13 +15,16 @@ import (
 type UserController struct{}
 
 func (UserController) GetUserAvatar(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("user_id"), 10, 32)
-	if err != nil {
+	form := struct {
+		UserID uint32 `form:"user_id" binding:"required"`
+	}{}
+
+	if err := c.ShouldBind(&form); err != nil {
 		Err(c, err)
 		return
 	}
 
-	user, err := userService.GetUserByID(uint32(id))
+	user, err := userService.GetUserByID(form.UserID)
 	if err != nil || !utils.FileExist(user.Avatar) {
 		c.Status(http.StatusNotFound)
 		return
@@ -33,12 +36,16 @@ func (UserController) GetUserAvatar(c *gin.Context) {
 func (UserController) UploadUserAvatar(c *gin.Context) {
 	id, _ := GetLoginUserInfo(c)
 
-	file, err := c.FormFile("avatar")
-	if err != nil {
+	form := struct {
+		Avatar *multipart.FileHeader `form:"avatar" binding:"required"`
+	}{}
+
+	if err := c.ShouldBind(&form); err != nil {
 		Err(c, err)
 		return
 	}
 
+	file := form.Avatar
 	if file.Size > config.AvatarFileSizeLimit {
 		Error(c, "file too large")
 		return
@@ -51,7 +58,7 @@ func (UserController) UploadUserAvatar(c *gin.Context) {
 		return
 	}
 
-	if userService.UpdateUserAvatarByID(id, path) != nil {
+	if err := userService.UpdateUserAvatarByID(id, path); err != nil {
 		Err(c, err)
 		return
 	}
@@ -84,13 +91,16 @@ func (UserController) GetUserFriendsDetail(c *gin.Context) {
 func (UserController) AddUserFriend(c *gin.Context) {
 	id, _ := GetLoginUserInfo(c)
 
-	friendID, err := strconv.ParseUint(c.PostForm("friend_id"), 10, 32)
-	if err != nil {
+	form := struct {
+		FriendID uint32 `form:"friend_id" binding:"required"`
+	}{}
+
+	if err := c.ShouldBind(&form); err != nil {
 		Err(c, err)
 		return
 	}
 
-	if err := userService.AddUserFriend(id, uint32(friendID)); err != nil {
+	if err := userService.AddUserFriend(id, form.FriendID); err != nil {
 		Err(c, err)
 		return
 	}
@@ -99,7 +109,7 @@ func (UserController) AddUserFriend(c *gin.Context) {
 	msg := &message.Message{
 		Type: message.Type_FRIEND_REQUEST,
 		From: id,
-		To:   uint32(friendID),
+		To:   form.FriendID,
 	}
 	chat_service.SendMessage(msg)
 
@@ -109,13 +119,16 @@ func (UserController) AddUserFriend(c *gin.Context) {
 func (UserController) AcceptUserFriend(c *gin.Context) {
 	id, _ := GetLoginUserInfo(c)
 
-	friendID, err := strconv.ParseUint(c.PostForm("friend_id"), 10, 32)
-	if err != nil {
+	form := struct {
+		FriendID uint32 `form:"friend_id" binding:"required"`
+	}{}
+
+	if err := c.ShouldBind(&form); err != nil {
 		Err(c, err)
 		return
 	}
 
-	if err := userService.AcceptUserFriend(id, uint32(friendID)); err != nil {
+	if err := userService.AcceptUserFriend(id, form.FriendID); err != nil {
 		Err(c, err)
 		return
 	}
@@ -123,7 +136,7 @@ func (UserController) AcceptUserFriend(c *gin.Context) {
 	msg := &message.Message{
 		Type: message.Type_FRIEND_ACCEPT,
 		From: id,
-		To:   uint32(friendID),
+		To:   form.FriendID,
 	}
 	chat_service.SendMessage(msg)
 
@@ -133,13 +146,16 @@ func (UserController) AcceptUserFriend(c *gin.Context) {
 func (UserController) GetFriendRemark(c *gin.Context) {
 	id, _ := GetLoginUserInfo(c)
 
-	friendID, err := strconv.ParseUint(c.Param("friend_id"), 10, 32)
-	if err != nil {
+	form := struct {
+		FriendID uint32 `form:"friend_id" binding:"required"`
+	}{}
+
+	if err := c.ShouldBind(&form); err != nil {
 		Err(c, err)
 		return
 	}
 
-	userFriend, err := userService.GetUserFriendDetailByFriendID(id, uint32(friendID))
+	userFriend, err := userService.GetUserFriendDetailByFriendID(id, form.FriendID)
 	if err != nil {
 		Err(c, err)
 		return
@@ -151,24 +167,23 @@ func (UserController) GetFriendRemark(c *gin.Context) {
 func (UserController) UpdateFriendRemark(c *gin.Context) {
 	id, _ := GetLoginUserInfo(c)
 
-	friendID, err := strconv.ParseUint(c.Param("friend_id"), 10, 32)
+	form := struct {
+		FriendID uint32 `form:"friend_id" binding:"required"`
+		Remark   string `form:"remark" binding:"required"`
+	}{}
+
+	if err := c.ShouldBind(&form); err != nil {
+		Err(c, err)
+		return
+	}
+
+	userFriend, err := userService.GetUserFriendDetailByFriendID(id, form.FriendID)
 	if err != nil {
 		Err(c, err)
 		return
 	}
 
-	remark := c.PostForm("remark")
-	if remark == "" {
-		Error(c, "invalid post data")
-	}
-
-	userFriend, err := userService.GetUserFriendDetailByFriendID(id, uint32(friendID))
-	if err != nil {
-		Err(c, err)
-		return
-	}
-
-	userFriend.Remark = remark
+	userFriend.Remark = form.Remark
 	if err := userService.UpdateUserFriend(userFriend); err != nil {
 		Err(c, err)
 		return

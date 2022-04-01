@@ -19,8 +19,8 @@ func (UserService) hashPassword(password string) string {
 
 	return hex.EncodeToString(hash.Sum(nil))
 }
-func (u UserService) verifyPassword(formPassword string, dbPassword string) bool {
-	hashPassword := u.hashPassword(formPassword)
+func (UserService) verifyPassword(formPassword string, dbPassword string) bool {
+	hashPassword := userService.hashPassword(formPassword)
 
 	log.WithFields(log.Fields{
 		"password":     formPassword,
@@ -35,8 +35,8 @@ func (UserService) verifyPublicKey(publicKey []byte, dbKey []byte) bool {
 	return string(publicKey) == string(dbKey)
 }
 
-func (u UserService) Register(username string, password string, publicKey []byte) error {
-	password = u.hashPassword(password)
+func (UserService) Register(username string, password string, publicKey []byte) error {
+	password = userService.hashPassword(password)
 	user := &model.User{
 		Username:  username,
 		Password:  password,
@@ -46,14 +46,14 @@ func (u UserService) Register(username string, password string, publicKey []byte
 	return errors.Wrap(err, "create data error")
 }
 
-func (u UserService) Login(username string, password string, publicKey []byte) (uint32, string, error) {
-	user, err := u.GetUserByUsername(username)
+func (UserService) Login(username string, password string, publicKey []byte) (uint32, string, error) {
+	user, err := userService.GetUserByUsername(username)
 
 	if err != nil {
 		return user.ID, user.Username, errors.Wrap(err, "no such user")
 	}
 
-	if !u.verifyPassword(password, user.Password) {
+	if !userService.verifyPassword(password, user.Password) {
 		return user.ID, user.Username, errors.Wrap(err, "password error")
 	}
 
@@ -141,11 +141,6 @@ func (UserService) GetUserFriendDetailByFriendID(id uint32, friendID uint32) (*m
 func (UserService) UpdateUserFriend(userFriend *model.UserFriend) error {
 	return db.Save(userFriend).Error
 }
-
-// func (s UserService) CheckUserExistByName(name string) bool {
-// 	_, err := s.GetUserByName(name)
-// 	return err == nil
-// }
 
 func (UserService) AddUserFriend(id uint32, friendID uint32) error {
 	return db.Transaction(func(tx *gorm.DB) error {
