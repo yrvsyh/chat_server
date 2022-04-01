@@ -71,7 +71,20 @@ func main() {
 				log.Error(err)
 				return
 			}
+
 			fmt.Println(msg.Type, string(msg.Content))
+
+			if msg.Type != message.Type_Acknowledge {
+				msg.Type = message.Type_Acknowledge
+				msg.From, msg.To = msg.To, msg.From
+				data, err = proto.Marshal(msg)
+				if err != nil {
+					log.Error(err)
+					break
+				}
+
+				conn.WriteMessage(websocket.BinaryMessage, data)
+			}
 		}
 	}(conn)
 

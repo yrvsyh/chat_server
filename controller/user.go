@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -106,6 +107,7 @@ func (UserController) AddUserFriend(c *gin.Context) {
 
 	// 推送添加好友请求
 	msg := &message.Message{
+		Id:   time.Now().UnixNano(),
 		Type: message.Type_FRIEND_REQUEST,
 		From: id,
 		To:   form.FriendID,
@@ -133,6 +135,7 @@ func (UserController) AcceptUserFriend(c *gin.Context) {
 	}
 
 	msg := &message.Message{
+		Id:   time.Now().UnixNano(),
 		Type: message.Type_FRIEND_ACCEPT,
 		From: id,
 		To:   form.FriendID,

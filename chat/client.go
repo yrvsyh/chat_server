@@ -2,12 +2,21 @@ package chat
 
 import (
 	"chat_server/message"
+	"container/list"
+	"sync"
+	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
+
+type pendingMessage struct {
+	msg   *message.Message
+	retry time.Duration
+	timer *time.Timer
+}
 
 type client struct {
 	m         *ChatManager
@@ -17,6 +26,9 @@ type client struct {
 	groupSet  mapset.Set[uint32]
 	send      chan *message.Message
 	sendRaw   chan []byte
+
+	pendingList *list.List // list[*pendingMessage]
+	pendingMap  *sync.Map  // map[uint64]*list.Element
 }
 
 func NewClient(m *ChatManager, id uint32, conn *websocket.Conn) *client {
@@ -26,6 +38,11 @@ func NewClient(m *ChatManager, id uint32, conn *websocket.Conn) *client {
 		conn:      conn,
 		friendSet: mapset.NewSet[uint32](),
 		groupSet:  mapset.NewSet[uint32](),
+		send:      make(chan *message.Message, 16),
+		sendRaw:   make(chan []byte, 16),
+
+		pendingList: list.New(),
+		pendingMap:  &sync.Map{},
 	}
 }
 
@@ -42,12 +59,17 @@ func (c *client) Init() {
 }
 
 func (c *client) unregister() {
-	id := c.id
-	c.m.clientsMap.Delete(id)
+	for e := c.pendingList.Front(); e != nil; e = e.Next() {
+		c.pendingMap.Delete(e)
+		pm := e.Value.(*pendingMessage)
+		if !pm.timer.Stop() {
+			<-pm.timer.C
+		}
+	}
+
+	c.m.clientsMap.Delete(c.id)
 	c.conn.Close()
 }
-
-
 
 func (c *client) readHandle() {
 	defer func() {
@@ -77,10 +99,9 @@ func (c *client) readHandle() {
 			continue
 		}
 
-		// TODO 回复Ack
-
 		switch msg.Type {
 		case message.Type_Acknowledge:
+			c.AckHandle(msg.Id)
 		case message.Type_FRIEND_TEXT, message.Type_FRIEND_IMAGE, message.Type_FRIEND_FILE:
 			messageService.SaveUserMessage(msg)
 			c.friendMessageHandle(msg)
@@ -116,4 +137,45 @@ func (c *client) writeHandle() {
 			c.conn.WriteMessage(websocket.BinaryMessage, data)
 		}
 	}
+}
+
+func (c *client) AckHandle(msgID int64) {
+	EAny, _ := c.pendingMap.LoadAndDelete(msgID)
+	e := EAny.(*list.Element)
+	pm := e.Value.(*pendingMessage)
+
+	// 关闭Ack超时计时器
+	if !pm.timer.Stop() {
+		<-pm.timer.C
+	}
+
+	// 移除已发送队列
+	c.pendingList.Remove(e)
+}
+
+func (c *client) ReplyAck(msgID int64) {
+	msg := &message.Message{
+		Id:   msgID,
+		Type: message.Type_Acknowledge,
+		From: 0,
+		To:   c.id,
+	}
+	c.send <- msg
+}
+
+// 发送消息到当前客户端
+func (c *client) sendMessage(msg *message.Message) {
+	// 加入已发送队列
+	pm := &pendingMessage{msg: msg, retry: time.Second}
+	e := c.pendingList.PushBack(pm)
+	c.pendingMap.Store(msg.Id, e)
+	pm.timer = time.AfterFunc(time.Second, func() {
+		// 未收到Ack, 重发消息
+		c.pendingList.MoveToBack(e)
+		time.Sleep(pm.retry)
+		pm.timer.Reset(time.Second)
+		c.send <- msg
+		pm.retry *= 2
+	})
+	c.send <- msg
 }

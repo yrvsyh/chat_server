@@ -77,17 +77,14 @@ func (m *ChatManager) getClient(id uint32) *client {
 }
 
 func (m *ChatManager) getGroupMembers(groupID uint32) mapset.Set[uint32] {
-	groupMemberSetAny, ok := m.groupMembersMap.Load(groupID)
-	if !ok {
-		m.groupMembersMap.Store(groupID, mapset.NewSet[uint32]())
-		groupMemberSetAny, _ = m.groupMembersMap.Load(groupID)
-	}
+	groupMemberSetAny, _ := m.groupMembersMap.LoadOrStore(groupID, mapset.NewSet[uint32]())
 	return groupMemberSetAny.(mapset.Set[uint32])
 }
 
-// 转发消息
-func (m *ChatManager) sendMessage(id uint32, msg *message.Message) {
-	if client := m.getClient(id); client != nil {
-		client.send <- msg
+// 发送到指定用户
+func (m *ChatManager) sendMessage(to uint32, msg *message.Message) {
+	client := m.getClient(to)
+	if client != nil {
+		client.sendMessage(msg)
 	}
 }
