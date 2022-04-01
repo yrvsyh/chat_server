@@ -3,6 +3,7 @@ package chat
 import (
 	"chat_server/message"
 	"sync"
+	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/gorilla/websocket"
@@ -28,6 +29,7 @@ func (m *ChatManager) Register(id uint32, conn *websocket.Conn) {
 
 // 服务端主动发送通知
 func (m *ChatManager) SendMessage(msg *message.Message) {
+	msg.Id = time.Now().UnixMicro()
 	switch msg.Type {
 	case message.Type_FRIEND_REQUEST, message.Type_FRIEND_ACCEPT, message.Type_FRIEND_DISBAND:
 		messageService.SaveUserMessage(msg)
@@ -83,8 +85,7 @@ func (m *ChatManager) getGroupMembers(groupID uint32) mapset.Set[uint32] {
 
 // 发送到指定用户
 func (m *ChatManager) sendMessage(to uint32, msg *message.Message) {
-	client := m.getClient(to)
-	if client != nil {
+	if client := m.getClient(to); client != nil {
 		client.sendMessage(msg)
 	}
 }

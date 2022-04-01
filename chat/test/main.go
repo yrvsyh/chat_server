@@ -96,7 +96,7 @@ func main() {
 		_, _ = fmt.Scanf("%d %d %s\n", &t, &to, &msgContent)
 
 		msg := &message.Message{}
-		msg.Id = time.Now().UnixNano()
+		msg.Id = time.Now().UnixMicro()
 		if t == 0 {
 			msg.Type = message.Type_FRIEND_TEXT
 		} else {

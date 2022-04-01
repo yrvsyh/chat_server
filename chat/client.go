@@ -26,6 +26,7 @@ type client struct {
 	groupSet  mapset.Set[uint32]
 	send      chan *message.Message
 	sendRaw   chan []byte
+	close     chan struct{}
 
 	pendingList *list.List // list[*pendingMessage]
 	pendingMap  *sync.Map  // map[uint64]*list.Element
@@ -40,6 +41,7 @@ func NewClient(m *ChatManager, id uint32, conn *websocket.Conn) *client {
 		groupSet:  mapset.NewSet[uint32](),
 		send:      make(chan *message.Message, 16),
 		sendRaw:   make(chan []byte, 16),
+		close:     make(chan struct{}),
 
 		pendingList: list.New(),
 		pendingMap:  &sync.Map{},
@@ -67,15 +69,14 @@ func (c *client) unregister() {
 		}
 	}
 
-	c.m.clientsMap.Delete(c.id)
+	c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 	c.conn.Close()
 }
 
 func (c *client) readHandle() {
 	defer func() {
 		// 下线处理
-		c.userOfflineHandle()
-		c.unregister()
+		c.close <- struct{}{}
 	}()
 
 	for {
@@ -103,19 +104,24 @@ func (c *client) readHandle() {
 		case message.Type_Acknowledge:
 			c.AckHandle(msg.Id)
 		case message.Type_FRIEND_TEXT, message.Type_FRIEND_IMAGE, message.Type_FRIEND_FILE:
+			msg.Id = time.Now().UnixMicro()
 			messageService.SaveUserMessage(msg)
 			c.friendMessageHandle(msg)
 		case message.Type_GROUP_TEXT, message.Type_GROUP_IMAGE, message.Type_GROUP_FILE:
+			msg.Id = time.Now().UnixMicro()
 			messageService.SaveGroupMessage(msg)
 			c.groupMessageHandle(msg)
+		default:
+			log.Error("message type error")
 		}
 	}
 }
 
 func (c *client) writeHandle() {
 	defer func() {
-		c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-		c.conn.Close()
+		// 下线处理
+		c.userOfflineHandle()
+		c.unregister()
 	}()
 
 	for {
@@ -129,12 +135,18 @@ func (c *client) writeHandle() {
 				log.Error(err)
 				continue
 			}
-			c.conn.WriteMessage(websocket.BinaryMessage, data)
+			if c.conn.WriteMessage(websocket.BinaryMessage, data) != nil {
+				return
+			}
 		case data, ok := <-c.sendRaw:
 			if !ok {
 				return
 			}
-			c.conn.WriteMessage(websocket.BinaryMessage, data)
+			if c.conn.WriteMessage(websocket.BinaryMessage, data) != nil {
+				return
+			}
+		case <-c.close:
+			return
 		}
 	}
 }
