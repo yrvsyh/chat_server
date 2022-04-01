@@ -1,4 +1,4 @@
-package chat_service
+package chat
 
 import (
 	"chat_server/database"
@@ -10,5 +10,5 @@ var (
 	groupService   = service.GroupService{}
 	messageService = service.MessageService{}
 
-	RDB = database.RDB
+	rdb = database.RDB
 )

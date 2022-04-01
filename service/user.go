@@ -108,25 +108,25 @@ func (UserService) GetUserFriendsDetailByID(id uint32) ([]model.UserFriend, erro
 // 	return ret, err
 // }
 
-func (UserService) GetUserFriendIDSet(id uint32) (map[uint32]bool, error) {
-	ret := make(map[uint32]bool)
+func (UserService) GetUserFriendIDSet(id uint32) (map[uint32]struct{}, error) {
+	ret := make(map[uint32]struct{})
 
 	var userFriends []model.UserFriend
 	err := db.Select("friend_id").Where("user_id = ?", id).Find(&userFriends).Error
 	for _, userFriend := range userFriends {
-		ret[userFriend.FriendID] = true
+		ret[userFriend.FriendID] = struct{}{}
 	}
 
 	return ret, err
 }
 
-func (UserService) GetUserGroupIDSet(id uint32) (map[uint32]bool, error) {
-	ret := make(map[uint32]bool)
+func (UserService) GetUserGroupIDSet(id uint32) (map[uint32]struct{}, error) {
+	ret := make(map[uint32]struct{})
 
 	var groupUsers []model.GroupUser
 	err := db.Select("group_id").Where("user_id = ?", id).Find(&groupUsers).Error
 	for _, groupUser := range groupUsers {
-		ret[groupUser.GroupID] = true
+		ret[groupUser.GroupID] = struct{}{}
 	}
 
 	return ret, err

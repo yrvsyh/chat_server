@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"chat_server/service/chat_service"
+	"chat_server/chat"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +9,8 @@ import (
 )
 
 type ChatController struct{}
+
+var manager = chat.NewChatManager()
 
 var upgrader = websocket.Upgrader{
 	// 解决跨域问题
@@ -25,5 +27,5 @@ func (ChatController) ChatHandle(c *gin.Context) {
 	}
 
 	id, _ := GetLoginUserInfo(c)
-	chat_service.RegisterClient(id, ws)
+	manager.Register(id, ws)
 }

@@ -3,7 +3,6 @@ package controller
 import (
 	"chat_server/config"
 	"chat_server/message"
-	"chat_server/service/chat_service"
 	"chat_server/utils"
 	"mime/multipart"
 	"net/http"
@@ -111,7 +110,7 @@ func (UserController) AddUserFriend(c *gin.Context) {
 		From: id,
 		To:   form.FriendID,
 	}
-	chat_service.SendMessage(msg)
+	manager.SendMessage(msg)
 
 	Success(c)
 }
@@ -138,7 +137,7 @@ func (UserController) AcceptUserFriend(c *gin.Context) {
 		From: id,
 		To:   form.FriendID,
 	}
-	chat_service.SendMessage(msg)
+	manager.SendMessage(msg)
 
 	Success(c)
 }

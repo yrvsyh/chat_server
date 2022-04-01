@@ -13,12 +13,12 @@ func (GroupService) GetGroupByID(id uint32) (*model.Group, error) {
 	return group, err
 }
 
-func (GroupService) GetGroupMemberSet(id uint32) (map[uint32]bool, error) {
-	ret := make(map[uint32]bool)
+func (GroupService) GetGroupMemberSet(id uint32) (map[uint32]struct{}, error) {
+	ret := make(map[uint32]struct{})
 	var groupUsers []model.GroupUser
 	err := db.Where("group_id = ?", id).Find(&groupUsers).Error
 	for _, groupUser := range groupUsers {
-		ret[groupUser.UserID] = true
+		ret[groupUser.UserID] = struct{}{}
 	}
 	return ret, err
 }
