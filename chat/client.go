@@ -2,7 +2,7 @@ package chat
 
 import (
 	"chat_server/message"
-	"container/list"
+	"chat_server/utils"
 	"sync"
 	"time"
 
@@ -28,8 +28,7 @@ type client struct {
 	sendRaw   chan []byte
 	close     chan struct{}
 
-	pendingList *list.List // list[*pendingMessage]
-	pendingMap  *sync.Map  // map[uint64]*list.Element
+	pendingMap *sync.Map // map[uint64]*pendingMessage
 }
 
 func NewClient(m *ChatManager, id uint32, conn *websocket.Conn) *client {
@@ -43,8 +42,7 @@ func NewClient(m *ChatManager, id uint32, conn *websocket.Conn) *client {
 		sendRaw:   make(chan []byte, 16),
 		close:     make(chan struct{}),
 
-		pendingList: list.New(),
-		pendingMap:  &sync.Map{},
+		pendingMap: &sync.Map{},
 	}
 }
 
@@ -61,13 +59,14 @@ func (c *client) Init() {
 }
 
 func (c *client) unregister() {
-	for e := c.pendingList.Front(); e != nil; e = e.Next() {
-		c.pendingMap.Delete(e)
-		pm := e.Value.(*pendingMessage)
+	c.pendingMap.Range(func(key, value any) bool {
+		pm := value.(*pendingMessage)
 		if !pm.timer.Stop() {
 			<-pm.timer.C
 		}
-	}
+		c.pendingMap.Delete(key)
+		return true
+	})
 
 	c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 	c.conn.Close()
@@ -104,11 +103,11 @@ func (c *client) readHandle() {
 		case message.Type_Acknowledge:
 			c.AckHandle(msg.Id)
 		case message.Type_FRIEND_TEXT, message.Type_FRIEND_IMAGE, message.Type_FRIEND_FILE:
-			msg.Id = time.Now().UnixMicro()
+			msg.Id = utils.GenMsgID()
 			messageService.SaveUserMessage(msg)
 			c.friendMessageHandle(msg)
 		case message.Type_GROUP_TEXT, message.Type_GROUP_IMAGE, message.Type_GROUP_FILE:
-			msg.Id = time.Now().UnixMicro()
+			msg.Id = utils.GenMsgID()
 			messageService.SaveGroupMessage(msg)
 			c.groupMessageHandle(msg)
 		default:
@@ -152,38 +151,35 @@ func (c *client) writeHandle() {
 }
 
 func (c *client) AckHandle(msgID int64) {
-	EAny, _ := c.pendingMap.LoadAndDelete(msgID)
-	e := EAny.(*list.Element)
-	pm := e.Value.(*pendingMessage)
+	value, ok := c.pendingMap.LoadAndDelete(msgID)
+	if ok {
+		pm := value.(*pendingMessage)
 
-	// 关闭Ack超时计时器
-	if !pm.timer.Stop() {
-		<-pm.timer.C
+		// 关闭Ack超时计时器
+		if !pm.timer.Stop() {
+			<-pm.timer.C
+		}
 	}
-
-	// 移除已发送队列
-	c.pendingList.Remove(e)
 }
 
-func (c *client) ReplyAck(msgID int64) {
-	msg := &message.Message{
-		Id:   msgID,
-		Type: message.Type_Acknowledge,
-		From: 0,
-		To:   c.id,
+func (c *client) ReplyAck(msg *message.Message) {
+	ack := &message.Message{
+		Id:      msg.Id,
+		LocalId: msg.LocalId,
+		Type:    message.Type_Acknowledge,
+		From:    0,
+		To:      c.id,
 	}
-	c.send <- msg
+	c.send <- ack
 }
 
 // 发送消息到当前客户端
 func (c *client) sendMessage(msg *message.Message) {
 	// 加入已发送队列
 	pm := &pendingMessage{msg: msg, retry: time.Second}
-	e := c.pendingList.PushBack(pm)
-	c.pendingMap.Store(msg.Id, e)
+	c.pendingMap.Store(msg.Id, pm)
 	pm.timer = time.AfterFunc(time.Second, func() {
 		// 未收到Ack, 重发消息
-		c.pendingList.MoveToBack(e)
 		time.Sleep(pm.retry)
 		pm.timer.Reset(time.Second)
 		c.send <- msg

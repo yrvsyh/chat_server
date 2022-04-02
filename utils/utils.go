@@ -3,7 +3,39 @@ package utils
 import (
 	"fmt"
 	"os"
+	"sync"
+	"time"
 )
+
+const epoch = int64(1640966400000)
+
+var (
+	lock     sync.Mutex
+	sequence int64 = 0
+	lastTime int64 = 0
+)
+
+func GenMsgID() int64 {
+	lock.Lock()
+	defer lock.Unlock()
+
+	now := time.Now().UnixMilli() - epoch
+	if now == lastTime {
+		sequence = (sequence + 1) & (int64(-1) >> 42)
+		if sequence == 0 {
+			for now <= lastTime {
+				now = time.Now().UnixMilli() - epoch
+			}
+		}
+	} else {
+		sequence = 0
+	}
+
+	lastTime = now
+	id := now<<23>>1 + sequence
+
+	return id
+}
 
 func Bytes2BinStr(b []byte) string {
 	var ret string

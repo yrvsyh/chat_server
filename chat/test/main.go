@@ -7,12 +7,13 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
+
+var localID int64 = 0
 
 func main() {
 	fmt.Println("name password")
@@ -72,7 +73,7 @@ func main() {
 				return
 			}
 
-			fmt.Println(msg.Type, string(msg.Content))
+			fmt.Println(msg.Id, msg.LocalId, msg.Type, string(msg.Content))
 
 			if msg.Type != message.Type_Acknowledge {
 				msg.Type = message.Type_Acknowledge
@@ -96,7 +97,8 @@ func main() {
 		_, _ = fmt.Scanf("%d %d %s\n", &t, &to, &msgContent)
 
 		msg := &message.Message{}
-		msg.Id = time.Now().UnixMicro()
+		msg.LocalId = localID
+		localID++
 		if t == 0 {
 			msg.Type = message.Type_FRIEND_TEXT
 		} else {

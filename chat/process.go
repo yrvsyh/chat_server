@@ -2,7 +2,7 @@ package chat
 
 import (
 	"chat_server/message"
-	"time"
+	"chat_server/utils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -33,7 +33,7 @@ func (c *client) userOnlineHandle() bool {
 		_, ok := c.m.clientsMap.Load(friend)
 		if ok {
 			msg := &message.Message{
-				Id:   time.Now().UnixMicro(),
+				Id:   utils.GenMsgID(),
 				Type: message.Type_FRIEND_ONLINE,
 				From: c.id,
 				To:   friend,
@@ -52,7 +52,7 @@ func (c *client) userOfflineHandle() {
 		_, ok := c.m.clientsMap.Load(friend)
 		if ok {
 			msg := &message.Message{
-				Id:   time.Now().UnixMicro(),
+				Id:   utils.GenMsgID(),
 				Type: message.Type_FRIEND_OFFLINE,
 				From: c.id,
 				To:   friend,
@@ -67,7 +67,7 @@ func (c *client) friendMessageHandle(msg *message.Message) {
 	friends := c.friendSet
 	if friends.Contains(msg.To) {
 		c.m.sendMessage(msg.To, msg)
-		c.ReplyAck(msg.Id)
+		c.ReplyAck(msg)
 	}
 }
 
@@ -79,6 +79,6 @@ func (c *client) groupMessageHandle(msg *message.Message) {
 			c.m.sendMessage(userID, msg)
 			return false
 		})
-		c.ReplyAck(msg.Id)
+		c.ReplyAck(msg)
 	}
 }
