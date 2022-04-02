@@ -2,11 +2,12 @@ package chat
 
 import (
 	"chat_server/message"
+	"chat_server/utils"
 	"sync"
-	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 )
 
 type ChatManager struct {
@@ -29,7 +30,7 @@ func (m *ChatManager) Register(id uint32, conn *websocket.Conn) {
 
 // 服务端主动发送通知
 func (m *ChatManager) SendMessage(msg *message.Message) {
-	msg.Id = time.Now().UnixMicro()
+	msg.Id = utils.GenMsgID()
 	switch msg.Type {
 	case message.Type_FRIEND_REQUEST, message.Type_FRIEND_ACCEPT, message.Type_FRIEND_DISBAND:
 		messageService.SaveUserMessage(msg)
@@ -79,8 +80,19 @@ func (m *ChatManager) getClient(id uint32) *client {
 }
 
 func (m *ChatManager) getGroupMembers(groupID uint32) mapset.Set[uint32] {
-	groupMemberSetAny, _ := m.groupMembersMap.LoadOrStore(groupID, mapset.NewSet[uint32]())
-	return groupMemberSetAny.(mapset.Set[uint32])
+	groupMemberSetAny, ok := m.groupMembersMap.LoadOrStore(groupID, mapset.NewSet[uint32]())
+	groupMemberSet := groupMemberSetAny.(mapset.Set[uint32])
+	if !ok {
+		members, err := groupService.GetGroupMemberSet(groupID)
+		if err != nil {
+			log.Error(err)
+		}
+		// TODO 使用mapset.Set
+		for userID := range members {
+			groupMemberSet.Add(userID)
+		}
+	}
+	return groupMemberSet
 }
 
 // 发送到指定用户
