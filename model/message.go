@@ -16,7 +16,3 @@ type Message struct {
 	CreatedAt time.Time      `json:"created_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
 }
-
-func init() {
-	db.AutoMigrate(Message{})
-}
