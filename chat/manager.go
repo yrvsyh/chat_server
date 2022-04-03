@@ -23,6 +23,15 @@ func NewChatManager() *ChatManager {
 }
 
 func (m *ChatManager) Register(id uint32, conn *websocket.Conn) {
+	// 单客户端登录
+	_, ok := m.clientsMap.Load(id)
+	if ok {
+		log.Info("Signed in on another client")
+		conn.WriteMessage(websocket.CloseMessage, []byte("Signed in on another client"))
+		conn.Close()
+		return
+	}
+
 	client := NewClient(m, id, conn)
 	m.clientsMap.Store(id, client)
 	client.Init()
