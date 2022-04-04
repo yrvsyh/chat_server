@@ -43,6 +43,8 @@ func (c *client) userOnlineHandle() bool {
 		return false
 	})
 
+	// 发送状态为等待Ack的消息
+
 	return true
 }
 

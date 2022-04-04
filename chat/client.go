@@ -104,11 +104,11 @@ func (c *client) readHandle() {
 			c.AckHandle(msg.Id)
 		case message.Type_FRIEND_TEXT, message.Type_FRIEND_IMAGE, message.Type_FRIEND_FILE:
 			msg.Id = utils.GenMsgID()
-			messageService.SaveUserMessage(msg)
+			messageService.SaveMessage(msg)
 			c.friendMessageHandle(msg)
 		case message.Type_GROUP_TEXT, message.Type_GROUP_IMAGE, message.Type_GROUP_FILE:
 			msg.Id = utils.GenMsgID()
-			messageService.SaveGroupMessage(msg)
+			messageService.SaveMessage(msg)
 			c.groupMessageHandle(msg)
 		default:
 			log.Error("message type error")
@@ -159,6 +159,9 @@ func (c *client) AckHandle(msgID int64) {
 		if !pm.timer.Stop() {
 			<-pm.timer.C
 		}
+
+		// 客户端已收到消息
+		messageService.UpdateMessageState(pm.msg, message.State_CLIENT_RECV)
 	}
 }
 
@@ -185,5 +188,9 @@ func (c *client) sendMessage(msg *message.Message) {
 		c.send <- msg
 		pm.retry *= 2
 	})
+
+	// 等待Ack
+	messageService.UpdateMessageState(msg, message.State_WAIT_ACK)
+
 	c.send <- msg
 }

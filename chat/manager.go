@@ -42,9 +42,9 @@ func (m *ChatManager) SendMessage(msg *message.Message) {
 	msg.Id = utils.GenMsgID()
 	switch msg.Type {
 	case message.Type_FRIEND_REQUEST, message.Type_FRIEND_ACCEPT, message.Type_FRIEND_DISBAND:
-		messageService.SaveUserMessage(msg)
+		messageService.SaveMessage(msg)
 	case message.Type_GROUP_REQUEST, message.Type_GROUP_ACCEPT, message.Type_GROUP_DISBAND, message.Type_GROUP_USER_CHANGE:
-		messageService.SaveGroupMessage(msg)
+		messageService.SaveMessage(msg)
 	}
 	m.sendMessage(msg.To, msg)
 }
