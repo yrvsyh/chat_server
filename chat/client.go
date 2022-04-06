@@ -61,15 +61,15 @@ func (c *client) Init() {
 func (c *client) unregister() {
 	c.pendingMap.Range(func(key, value any) bool {
 		pm := value.(*pendingMessage)
-		if !pm.timer.Stop() {
-			<-pm.timer.C
-		}
+		pm.timer.Stop()
 		c.pendingMap.Delete(key)
 		return true
 	})
 
 	c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 	c.conn.Close()
+
+	c.m.clientsMap.Delete(c.id)
 }
 
 func (c *client) readHandle() {
@@ -156,9 +156,7 @@ func (c *client) AckHandle(msgID int64) {
 		pm := value.(*pendingMessage)
 
 		// 关闭Ack超时计时器
-		if !pm.timer.Stop() {
-			<-pm.timer.C
-		}
+		pm.timer.Stop()
 
 		// 客户端已收到消息
 		messageService.UpdateMessageState(pm.msg, message.State_CLIENT_RECV)
