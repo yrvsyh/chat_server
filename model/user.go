@@ -1,7 +1,7 @@
 package model
 
 type User struct {
-	BaseModel `json:"base_model,omitempty"`
+	BaseModel
 	Username  string `gorm:"uniqueIndex;size:255" form:"username" json:"username,omitempty"`
 	Password  string `gorm:"size:255;notNull;default:''" form:"password" json:"password"`
 	PublicKey []byte `form:"public_key" json:"public_key,omitempty"`
