@@ -1,25 +1,37 @@
 package database
 
 import (
+	"sync"
+
 	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
-var TestDB *gorm.DB
+var (
+	sqliteOnce sync.Once
+	sqliteDB   *gorm.DB
+)
 
-func InitSqlite() {
+func initSqlite() {
 	var err error
 	//err = os.Remove("database/sqlite.db")
-	TestDB, err = gorm.Open(sqlite.Open("database/sqlite.db"), &gorm.Config{
+	sqliteDB, err = gorm.Open(sqlite.Open("database/sqlite.db"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
-	if TestDB.Error != nil {
-		log.Fatal(TestDB.Error)
+	if sqliteDB.Error != nil {
+		log.Fatal(sqliteDB.Error)
 	}
 	log.Info("sqlite init done")
+}
+
+func getSqliteInstance() *gorm.DB {
+	sqliteOnce.Do(func() {
+		initSqlite()
+	})
+	return sqliteDB
 }

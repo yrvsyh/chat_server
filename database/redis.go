@@ -1,21 +1,33 @@
 package database
 
 import (
+	"sync"
+
 	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 )
 
-var RDB *redis.Client
+var (
+	redisOnce sync.Once
+	redisDB   *redis.Client
+)
 
-func InitRedis() {
-	RDB = redis.NewClient(&redis.Options{
+func initRedis() {
+	redisDB = redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 	})
-	_, err := RDB.Ping().Result()
+	_, err := redisDB.Ping().Result()
 	if err != nil {
 		log.Error(err)
 	}
 	log.Info("redis init done")
+}
+
+func GetRedisInstance() *redis.Client {
+	redisOnce.Do(func() {
+		initRedis()
+	})
+	return redisDB
 }
