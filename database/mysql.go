@@ -9,7 +9,7 @@ import (
 
 var DB *gorm.DB
 
-func init() {
+func InitMysql() {
 	var err error
 	dsn := "yzy:yuan@tcp(127.0.0.1:3306)/chat_server?charset=utf8mb4&parseTime=True&loc=Local"
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{

@@ -7,6 +7,8 @@ import (
 )
 
 func main() {
-	err := database.DB.AutoMigrate(model.User{}, model.UserFriend{}, model.UserMessage{}, model.Group{}, model.GroupUser{}, model.GroupMessage{})
-	fmt.Println(err)
+	database.InitMysql()
+	if err := database.DB.AutoMigrate(model.User{}, model.UserFriend{}, model.UserMessage{}, model.Group{}, model.GroupUser{}, model.GroupMessage{}); err != nil {
+		fmt.Println(err)
+	}
 }

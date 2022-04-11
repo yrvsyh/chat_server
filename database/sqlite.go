@@ -9,7 +9,7 @@ import (
 
 var TestDB *gorm.DB
 
-func _init() {
+func InitSqlite() {
 	var err error
 	//err = os.Remove("database/sqlite.db")
 	TestDB, err = gorm.Open(sqlite.Open("database/sqlite.db"), &gorm.Config{
