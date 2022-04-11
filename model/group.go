@@ -7,7 +7,3 @@ type Group struct {
 	OwnerID   uint32 `json:"owner_id"`
 	Owner     *User  `json:"owner,omitempty"`
 }
-
-func init() {
-	db.AutoMigrate(Group{})
-}

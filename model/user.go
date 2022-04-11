@@ -10,7 +10,3 @@ type User struct {
 	Phone     string `gorm:"size:255;notNull;default:''" json:"phone,omitempty"`
 	Avatar    string `gorm:"size:255;notNull;default:''" json:"avatar,omitempty"`
 }
-
-func init() {
-	db.AutoMigrate(User{})
-}
