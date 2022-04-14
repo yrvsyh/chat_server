@@ -44,3 +44,35 @@ func (MessageService) UpdateMessageState(msg *message.Message, state message.Sta
 		return errors.New("msg type error")
 	}
 }
+
+// func (MessageService) UpdateUserLastMsgID(userID uint32, friendID uint32, msgID int64) error {
+// 	userFriend := &model.UserFriend{}
+// 	userFriend.UserID = userID
+// 	userFriend.FriendID = friendID
+// 	return db.Model(userFriend).Update("last_msg_id", msgID).Error
+// }
+
+// func (MessageService) UpdateGroupLastMsgID(groupID uint32, userID uint32, msgID int64) error {
+// 	groupUser := &model.GroupUser{}
+// 	groupUser.GroupID = groupID
+// 	groupUser.UserID = userID
+// 	return db.Model(groupUser).Update("last_msg_id", msgID).Error
+// }
+
+func (MessageService) UpdateLastMsgID(msg *message.Message) error {
+	t := message.CheckMessageType(msg)
+	switch t {
+	case message.MESSAGE_TYPE_USER:
+		userFriend := &model.UserFriend{}
+		userFriend.UserID = msg.To
+		userFriend.FriendID = msg.From
+		return db.Model(userFriend).Update("last_msg_id", msg.Id).Error
+	case message.MESSAGE_TYPE_GROUP:
+		groupUser := &model.GroupUser{}
+		groupUser.GroupID = msg.From
+		groupUser.UserID = msg.To
+		return db.Model(groupUser).Update("last_msg_id", msg.Id).Error
+	default:
+		return errors.New("msg type error")
+	}
+}

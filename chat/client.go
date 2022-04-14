@@ -158,8 +158,11 @@ func (c *client) AckHandle(msgID int64) {
 		// 关闭Ack超时计时器
 		pm.timer.Stop()
 
+		msg := pm.msg
 		// 客户端已收到消息
-		messageService.UpdateMessageState(pm.msg, message.State_CLIENT_RECV)
+		messageService.UpdateMessageState(msg, message.State_CLIENT_RECV)
+		// 更新User最后收到的msgID
+		messageService.UpdateLastMsgID(msg)
 	}
 }
 
