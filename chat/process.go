@@ -43,7 +43,22 @@ func (c *client) userOnlineHandle() bool {
 		return false
 	})
 
-	// 发送状态为等待Ack的消息
+	// TODO 发送状态为等待Ack的消息
+
+	// 发送所有未接收的通知消息 包括重要的通知消息
+	// FIXME 根据State筛选未发送的消息 排除等待Ack中的消息
+	friendMessages, _ := messageService.GetFriendOfflineMessages(c.id)
+	for _, friendMessage := range friendMessages {
+		msg := messageService.LoadMessage(&friendMessage.Message)
+		c.sendMessage(msg)
+	}
+
+	// FIXME 群消息等待用户拉取
+	groupMessages, _ := messageService.GetGroupOfflineMessages(c.id)
+	for _, groupMessage := range groupMessages {
+		msg := messageService.LoadMessage(&groupMessage.Message)
+		c.sendMessage(msg)
+	}
 
 	return true
 }
