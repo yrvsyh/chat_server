@@ -12,7 +12,7 @@ var (
 	authController  = controller.AuthController{}
 	userController  = controller.UserController{}
 	groupController = controller.GroupController{}
-	chatController  = controller.ChatController{}
+	wsController    = controller.WSController{}
 )
 
 func InitRouter() *gin.Engine {
@@ -22,8 +22,12 @@ func InitRouter() *gin.Engine {
 	r.Use(gin.Recovery())
 
 	r.LoadHTMLGlob("templates/**/*")
+	r.Static("/static", "./static")
 
-	r.GET("/ws/chat", middleware.SessionAuthMiddleware(), chatController.ChatHandle)
+	ws := r.Group("/ws")
+	{
+		ws.GET("/chat", middleware.SessionAuthMiddleware(), wsController.ChatHandle)
+	}
 
 	auth := r.Group("/auth")
 	{
@@ -36,12 +40,14 @@ func InitRouter() *gin.Engine {
 	user := r.Group("/user")
 	{
 		user.Use(middleware.SessionAuthMiddleware())
+		user.GET("/search", userController.SearchUser)
+		user.GET("/public_key", userController.GetUserPublicKey)
 		user.GET("/avatar", userController.GetUserAvatar)
 		user.POST("/avatar", userController.UploadUserAvatar)
 		user.GET("/friends", userController.GetUserFriends)
 		user.GET("/friends_detail", userController.GetUserFriendsDetail)
-		user.POST("/add_friends", userController.AddUserFriend)
-		user.POST("/accept_friends", userController.AcceptUserFriend)
+		user.POST("/add_friend", userController.AddUserFriend)
+		user.POST("/accept_friend", userController.AcceptUserFriend)
 		user.GET("/remark", userController.GetFriendRemark)
 		user.POST("/remark", userController.UpdateFriendRemark)
 	}
@@ -49,7 +55,7 @@ func InitRouter() *gin.Engine {
 	group := r.Group("/group")
 	{
 		group.Use(middleware.SessionAuthMiddleware())
-		group.GET("/avatar", groupController.GetGroupAvatar)
+		group.POST("/avatar", groupController.GetGroupAvatar)
 		group.POST("/invite", groupController.InvteUser)
 		group.POST("/create", groupController.CreateGroup)
 		group.GET("/joined_group", groupController.GetJoinedGroupInfo)

@@ -31,11 +31,7 @@ func (UserService) verifyPassword(formPassword string, dbPassword string) bool {
 	return dbPassword == hashPassword
 }
 
-func (UserService) verifyPublicKey(publicKey []byte, dbKey []byte) bool {
-	return string(publicKey) == string(dbKey)
-}
-
-func (UserService) Register(username string, password string, publicKey []byte) error {
+func (UserService) Register(username string, password string, publicKey string) error {
 	password = userService.hashPassword(password)
 	user := &model.User{
 		Username:  username,
@@ -46,22 +42,24 @@ func (UserService) Register(username string, password string, publicKey []byte) 
 	return errors.Wrap(err, "create data error")
 }
 
-func (UserService) Login(username string, password string, publicKey []byte) (uint32, string, error) {
+func (UserService) Login(username string, password string) (uint32, string, string, error) {
 	user, err := userService.GetUserByUsername(username)
 
 	if err != nil {
-		return user.ID, user.Username, errors.Wrap(err, "no such user")
+		return 0, "", "", errors.Wrap(err, "no such user")
 	}
 
 	if !userService.verifyPassword(password, user.Password) {
-		return user.ID, user.Username, errors.Wrap(err, "password error")
+		return 0, "", "", errors.Wrap(err, "password error")
 	}
 
-	// if !u.verifyPublicKey(publicKey, user.PublicKey) {
-	// 	return user.ID, user.Username, errors.Wrap(err, "public key invalid")
-	// }
+	return user.ID, user.Username, user.PublicKey, nil
+}
 
-	return user.ID, user.Username, nil
+func (UserService) SearchUserByName(name string) ([]model.User, error) {
+	var users []model.User
+	err := db.Select("id", "username", "nickname", "avatar").Where("username LIKE ? or nickname LIKE ?", "%"+name+"%", "%"+name+"%").Find(&users).Error
+	return users, err
 }
 
 func (UserService) GetUserByID(id uint32) (*model.User, error) {

@@ -29,7 +29,7 @@ func (GroupService) CheckUserInGroup(groupID uint32, userID uint32) bool {
 	return err == nil
 }
 
-func (GroupService) CreateGroup(name string, id uint32, publicKey []byte) (uint32, error) {
+func (GroupService) CreateGroup(name string, id uint32, publicKey string) (uint32, error) {
 	group := &model.Group{Name: name, OwnerID: id, PublicKey: publicKey}
 	err := db.Create(group).Error
 	return group.ID, err

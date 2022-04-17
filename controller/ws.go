@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type ChatController struct{}
+type WSController struct{}
 
 var manager = chat.NewChatManager()
 
@@ -19,7 +19,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func (ChatController) ChatHandle(c *gin.Context) {
+func (WSController) ChatHandle(c *gin.Context) {
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		c.Status(http.StatusBadRequest)

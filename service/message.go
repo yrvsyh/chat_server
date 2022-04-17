@@ -103,6 +103,7 @@ func (MessageService) GetFriendOfflineMessages(id uint32) ([]model.FriendMessage
 		return messages, err
 	}
 	lastMsgID := user.LastMsgID
+	// WHY 需要加上反引号
 	err := db.Where("`to` = ?", id).Where("`id` > ?", lastMsgID).Find(&messages).Error
 	return messages, err
 }

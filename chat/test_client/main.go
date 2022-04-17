@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
@@ -21,8 +22,8 @@ func main() {
 	var password string
 	_, _ = fmt.Scanf("%s %s\n", &name, &password)
 
-	body := fmt.Sprintf("username=%s&password=%s", name, password)
-	resp, err := http.Post("http://127.0.0.1:8080/auth/login", "application/x-www-form-urlencoded", strings.NewReader(body))
+	body, _ := json.Marshal(gin.H{"username": name, "password": password})
+	resp, err := http.Post("http://127.0.0.1:8080/auth/login", "application/json", strings.NewReader(string(body)))
 	if err != nil {
 		log.Error(err)
 		return

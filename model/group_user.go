@@ -7,7 +7,7 @@ type GroupUser struct {
 	Group     *Group        `json:"group,omitempty"`
 	UserID    uint32        `gorm:"primaryKey" json:"user_id"`
 	User      *User         `json:"user,omitempty"`
-	LastMsgID uint64        `json:"last_msg_id"`
+	LastMsgID *uint64       `json:"last_msg_id"`
 	LastMsg   *GroupMessage `json:"last_msg,omitempty"`
 	Remark    string        `gorm:"size:255;notNull;default:''" json:"remark"`
 

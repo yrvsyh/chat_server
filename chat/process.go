@@ -39,6 +39,14 @@ func (c *client) userOnlineHandle() bool {
 				To:   friend,
 			}
 			c.m.sendMessage(friend, msg)
+
+			msg = &message.Message{
+				Id:   utils.GenMsgID(),
+				Type: message.Type_FRIEND_ONLINE,
+				From: friend,
+				To:   c.id,
+			}
+			c.sendMessage(msg)
 		}
 		return false
 	})
@@ -54,11 +62,11 @@ func (c *client) userOnlineHandle() bool {
 	}
 
 	// FIXME 群消息等待用户拉取
-	groupMessages, _ := messageService.GetGroupOfflineMessages(c.id)
-	for _, groupMessage := range groupMessages {
-		msg := messageService.LoadMessage(&groupMessage.Message)
-		c.sendMessage(msg)
-	}
+	// groupMessages, _ := messageService.GetGroupOfflineMessages(c.id)
+	// for _, groupMessage := range groupMessages {
+	// 	msg := messageService.LoadMessage(&groupMessage.Message)
+	// 	c.sendMessage(msg)
+	// }
 
 	return true
 }

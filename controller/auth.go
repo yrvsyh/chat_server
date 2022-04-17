@@ -2,8 +2,6 @@ package controller
 
 import (
 	"chat_server/middleware"
-	"io"
-	"mime/multipart"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,30 +13,18 @@ func (AuthController) Register(c *gin.Context) {
 	if c.Request.Method == http.MethodGet {
 		c.HTML(http.StatusOK, "auth/register.html", nil)
 	} else if c.Request.Method == http.MethodPost {
-		form := struct {
-			Username  string                `form:"username" binding:"required"`
-			Password  string                `form:"password" binding:"required"`
-			PublicKey *multipart.FileHeader `form:"public_key" binding:"required"`
+		json := struct {
+			Username  string `json:"username" binding:"required"`
+			Password  string `json:"password" binding:"required"`
+			PublicKey string `json:"public_key" binding:"required"`
 		}{}
 
-		if err := c.ShouldBind(&form); err != nil {
+		if err := c.ShouldBind(&json); err != nil {
 			Err(c, err)
 			return
 		}
 
-		keyFile, err := form.PublicKey.Open()
-		if err != nil {
-			Err(c, err)
-			return
-		}
-
-		publicKey, err := io.ReadAll(keyFile)
-		if err != nil {
-			Err(c, err)
-			return
-		}
-
-		if err := userService.Register(form.Username, form.Password, publicKey); err != nil {
+		if err := userService.Register(json.Username, json.Password, json.PublicKey); err != nil {
 			Err(c, err)
 			return
 		}
@@ -50,31 +36,17 @@ func (AuthController) Register(c *gin.Context) {
 }
 
 func (AuthController) Login(c *gin.Context) {
-	form := struct {
-		Username  string                `form:"username" binding:"required"`
-		Password  string                `form:"password" binding:"required"`
-		PublicKey *multipart.FileHeader `form:"public_key" binding:"-"`
+	json := struct {
+		Username string `json:"username" binding:"required"`
+		Password string `json:"password" binding:"required"`
 	}{}
 
-	if err := c.ShouldBind(&form); err != nil {
+	if err := c.ShouldBind(&json); err != nil {
 		Err(c, err)
 		return
 	}
 
-	// keyFile, err := data.PublicKey.Open()
-	// if err != nil {
-	// 	Err(c, err)
-	// 	return
-	// }
-
-	// publicKey, err := io.ReadAll(keyFile)
-	// if err != nil {
-	// 	Err(c, err)
-	// 	return
-	// }
-	var publicKey []byte
-
-	id, username, err := userService.Login(form.Username, form.Password, publicKey)
+	id, username, publicKey, err := userService.Login(json.Username, json.Password)
 	if err != nil {
 		Err(c, err)
 		return
@@ -89,7 +61,7 @@ func (AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	SuccessData(c, gin.H{"id": id})
+	SuccessData(c, gin.H{"id": id, "public_key": publicKey})
 }
 
 func (AuthController) Logout(c *gin.Context) {

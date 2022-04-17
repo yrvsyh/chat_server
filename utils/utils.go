@@ -19,12 +19,12 @@ func GenMsgID() int64 {
 	lock.Lock()
 	defer lock.Unlock()
 
-	now := time.Now().UnixMilli() - epoch
+	now := time.Now().UTC().UnixMilli() - epoch
 	if now == lastTime {
 		sequence = (sequence + 1) & (int64(-1) >> 42)
 		if sequence == 0 {
 			for now <= lastTime {
-				now = time.Now().UnixMilli() - epoch
+				now = time.Now().UTC().UnixMilli() - epoch
 			}
 		}
 	} else {
