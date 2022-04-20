@@ -10,6 +10,7 @@ type GroupUser struct {
 	LastMsgID *uint64       `json:"last_msg_id"`
 	LastMsg   *GroupMessage `json:"last_msg,omitempty"`
 	Remark    string        `gorm:"size:255;notNull;default:''" json:"remark"`
+	Nickname  string        `gorm:"size:255;notNull;default:''" json:"nickname"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

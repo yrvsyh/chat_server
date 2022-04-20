@@ -5,6 +5,8 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 const epoch = int64(1640966400000)
@@ -35,6 +37,10 @@ func GenMsgID() int64 {
 	id := now<<23>>1 + sequence
 
 	return id
+}
+
+func GenUUID() string {
+	return uuid.NewV4().String()
 }
 
 func Bytes2BinStr(b []byte) string {

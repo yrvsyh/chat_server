@@ -6,7 +6,7 @@ const (
 	PasswordSalt        = "some salt"
 	CookieKey           = "auth"
 	SessionKey          = "session key"
-	AvatarPathPrefix    = "resource" + string(os.PathSeparator) + "avatar"
+	AvatarPathPrefix    = "./static" + string(os.PathSeparator) + "avatar"
 	AvatarFileSizeLimit = 1 * 1024 * 1024
 
 	RedisChannelGroupMessageKeyPrefix = "group_message_"

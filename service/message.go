@@ -87,8 +87,8 @@ func (MessageService) UpdateLastMsgID(msg *message.Message) error {
 		return db.Model(user).Update("last_msg_id", msg.Id).Error
 	case message.MESSAGE_TYPE_GROUP:
 		groupUser := &model.GroupUser{}
-		groupUser.GroupID = msg.From
-		groupUser.UserID = msg.To
+		groupUser.GroupID = msg.To
+		groupUser.UserID = msg.From
 		return db.Model(groupUser).Update("last_msg_id", msg.Id).Error
 	default:
 		return errors.New("msg type error")
@@ -119,7 +119,7 @@ func (MessageService) GetGroupOfflineMessages(id uint32) ([]model.GroupMessage, 
 	for _, groupUser := range groupUsers {
 		lastMsgID := groupUser.LastMsgID
 		var groupMessages []model.GroupMessage
-		if err := db.Where("`to` = ?", groupUser.GroupID).Where("`id` > ?", lastMsgID).Find(&groupMessages).Error; err != nil {
+		if err := db.Where("`to` = ?", groupUser.GroupID).Where("`id` > ?", lastMsgID).Where("`from` != ?", id).Find(&groupMessages).Error; err != nil {
 			log.Error(err)
 			retErr = err
 		}

@@ -3,3 +3,4 @@ bin
 resource
 *.db
 keys
+static

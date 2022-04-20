@@ -40,6 +40,8 @@ func InitRouter() *gin.Engine {
 	user := r.Group("/user")
 	{
 		user.Use(middleware.SessionAuthMiddleware())
+		user.GET("/info", userController.GetUserInfo)
+		user.POST("/update_info", userController.UpdateUserInfo)
 		user.GET("/search", userController.SearchUser)
 		user.GET("/public_key", userController.GetUserPublicKey)
 		user.GET("/avatar", userController.GetUserAvatar)
@@ -55,10 +57,13 @@ func InitRouter() *gin.Engine {
 	group := r.Group("/group")
 	{
 		group.Use(middleware.SessionAuthMiddleware())
-		group.POST("/avatar", groupController.GetGroupAvatar)
+		group.GET("/avatar", groupController.GetGroupAvatar)
 		group.POST("/invite", groupController.InvteUser)
-		group.POST("/create", groupController.CreateGroup)
+		group.POST("/create_with_key", groupController.CreateGroupWithPublicKey)
 		group.GET("/joined_group", groupController.GetJoinedGroupInfo)
+		group.POST("/remark", groupController.UpdateGroupRemark)
+		group.POST("/create", groupController.CreateGroup)
+		group.GET("/members", groupController.GetGroupMembers)
 	}
 
 	return r

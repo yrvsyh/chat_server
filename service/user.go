@@ -86,13 +86,13 @@ func (UserService) UpdateUserAvatarByID(id uint32, path string) error {
 
 func (UserService) GetUserFriendsByID(id uint32) ([]model.UserFriend, error) {
 	friends := []model.UserFriend{}
-	err := db.Where("user_id = ? and accept = ?", id, true).Find(&friends).Error
+	err := db.Joins("JOIN user_friends as t on user_friends.user_id = t.friend_id and user_friends.friend_id = t.user_id and user_friends.accept = true and t.accept = true").Where("user_friends.user_id = ?", id).Find(&friends).Error
 	return friends, err
 }
 
 func (UserService) GetUserFriendsDetailByID(id uint32) ([]model.UserFriend, error) {
 	friends := []model.UserFriend{}
-	err := db.Preload("Friend").Where("user_id = ? and accept = ?", id, true).Find(&friends).Error
+	err := db.Preload("Friend").Joins("JOIN user_friends as t on user_friends.user_id = t.friend_id and user_friends.friend_id = t.user_id and user_friends.accept = true and t.accept = true").Where("user_friends.user_id = ?", id).Find(&friends).Error
 	return friends, err
 }
 
@@ -142,8 +142,7 @@ func (UserService) UpdateUserFriend(userFriend *model.UserFriend) error {
 
 func (UserService) AddUserFriend(id uint32, friendID uint32) error {
 	return db.Transaction(func(tx *gorm.DB) error {
-		// 双向好友, 默认为未同意
-		userFriend1 := &model.UserFriend{UserID: id, FriendID: friendID, Accept: false}
+		userFriend1 := &model.UserFriend{UserID: id, FriendID: friendID, Accept: true}
 		userFriend2 := &model.UserFriend{UserID: friendID, FriendID: id, Accept: false}
 
 		if err := tx.Create(userFriend1).Error; err != nil {
@@ -158,17 +157,13 @@ func (UserService) AddUserFriend(id uint32, friendID uint32) error {
 }
 
 func (UserService) AcceptUserFriend(id uint32, friendID uint32) error {
-	return db.Transaction(func(tx *gorm.DB) error {
-		userFriend1 := &model.UserFriend{UserID: id, FriendID: friendID}
-		userFriend2 := &model.UserFriend{UserID: friendID, FriendID: id}
+	peerInfo := &model.UserFriend{UserID: friendID, FriendID: id, Accept: true}
+	if err := db.Where(peerInfo).First(peerInfo).Error; err != nil {
+		// 对方未发起请求
+		log.Error(err)
+		return errors.New("对方未发起请求")
+	}
 
-		if err := tx.Model(userFriend1).Update("accept", true).Error; err != nil {
-			return err
-		}
-		if err := tx.Model(userFriend2).Update("accept", true).Error; err != nil {
-			return err
-		}
-
-		return nil
-	})
+	userFriend := &model.UserFriend{UserID: id, FriendID: friendID}
+	return db.Model(userFriend).Update("accept", true).Error
 }

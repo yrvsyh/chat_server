@@ -159,10 +159,17 @@ func (c *client) AckHandle(msgID int64) {
 		pm.timer.Stop()
 
 		msg := pm.msg
+		if message.CheckMessageType(msg) == message.MESSAGE_TYPE_NOTIFY {
+			return
+		}
 		// 客户端已收到消息
 		messageService.UpdateMessageState(msg, message.State_CLIENT_RECV)
 		// 更新User最后收到的msgID
-		messageService.UpdateLastMsgID(msg)
+		// 更新这个客户端的信息
+		msg.From = c.id
+		if err := messageService.UpdateLastMsgID(msg); err != nil {
+			log.Error(err)
+		}
 	}
 }
 

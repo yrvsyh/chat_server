@@ -40,6 +40,7 @@ func (c *client) userOnlineHandle() bool {
 			}
 			c.m.sendMessage(friend, msg)
 
+			// 通知好友的状态
 			msg = &message.Message{
 				Id:   utils.GenMsgID(),
 				Type: message.Type_FRIEND_ONLINE,
@@ -62,11 +63,11 @@ func (c *client) userOnlineHandle() bool {
 	}
 
 	// FIXME 群消息等待用户拉取
-	// groupMessages, _ := messageService.GetGroupOfflineMessages(c.id)
-	// for _, groupMessage := range groupMessages {
-	// 	msg := messageService.LoadMessage(&groupMessage.Message)
-	// 	c.sendMessage(msg)
-	// }
+	groupMessages, _ := messageService.GetGroupOfflineMessages(c.id)
+	for _, groupMessage := range groupMessages {
+		msg := messageService.LoadMessage(&groupMessage.Message)
+		c.sendMessage(msg)
+	}
 
 	return true
 }
@@ -97,11 +98,15 @@ func (c *client) friendMessageHandle(msg *message.Message) {
 }
 
 func (c *client) groupMessageHandle(msg *message.Message) {
+	log.Info("group msg ", msg.Id)
 	groupID := msg.To
 	if c.groupSet.Contains(groupID) {
 		groupMembers := c.m.getGroupMembers(groupID)
 		groupMembers.Each(func(userID uint32) bool {
-			c.m.sendMessage(userID, msg)
+			// 移除发送者
+			if userID != msg.From {
+				c.m.sendMessage(userID, msg)
+			}
 			return false
 		})
 		c.ReplyAck(msg)
