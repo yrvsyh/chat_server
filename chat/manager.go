@@ -43,10 +43,23 @@ func (m *ChatManager) SendMessage(msg *message.Message) {
 	switch msg.Type {
 	case message.Type_FRIEND_REQUEST, message.Type_FRIEND_ACCEPT, message.Type_FRIEND_DISBAND:
 		messageService.SaveMessage(msg)
+		m.sendMessage(msg.To, msg)
 	case message.Type_GROUP_REQUEST, message.Type_GROUP_ACCEPT, message.Type_GROUP_DISBAND, message.Type_GROUP_USER_CHANGE:
 		messageService.SaveMessage(msg)
+		// 发送给组内在线成员
+		groupID := msg.To
+		c := m.getClient(msg.From)
+		if c != nil && c.groupSet.Contains(groupID) {
+			groupMembers := c.m.getGroupMembers(groupID)
+			groupMembers.Each(func(userID uint32) bool {
+				// 移除发送者
+				if userID != msg.From {
+					c.m.sendMessage(userID, msg)
+				}
+				return false
+			})
+		}
 	}
-	m.sendMessage(msg.To, msg)
 }
 
 func (m *ChatManager) UpdateUserFriendsInfo(userID uint32, friendID uint32, isFriend bool) {

@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 type Result struct {
@@ -31,7 +33,8 @@ func Err(c *gin.Context, err error) {
 	c.Abort()
 }
 
-func Error(c *gin.Context, msg string) {
+func Error(c *gin.Context, err error, msg string) {
+	logrus.Error(errors.Wrap(err, msg))
 	c.Set("Code", -1)
 	c.Set("Msg", msg)
 	c.JSON(http.StatusOK, Result{Code: -1, Msg: msg})

@@ -167,3 +167,10 @@ func (UserService) AcceptUserFriend(id uint32, friendID uint32) error {
 	userFriend := &model.UserFriend{UserID: id, FriendID: friendID}
 	return db.Model(userFriend).Update("accept", true).Error
 }
+
+func (UserService) DeleteUserFriend(id uint32, friendID uint32) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		userFriend := &model.UserFriend{UserID: id, FriendID: friendID}
+		return tx.Delete(userFriend).Error
+	})
+}

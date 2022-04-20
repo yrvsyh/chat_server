@@ -146,7 +146,7 @@ func (UserController) UploadUserAvatar(c *gin.Context) {
 
 	// file := form.Avatar
 	if file.Size > config.AvatarFileSizeLimit {
-		Error(c, "file too large")
+		Error(c, nil, "file too large")
 		return
 	}
 

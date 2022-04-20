@@ -15,6 +15,10 @@ func (GroupService) GetGroupByID(id uint32) (*model.Group, error) {
 	return group, err
 }
 
+func (GroupService) UpdateGroup(group *model.Group) error {
+	return db.Updates(group).Error
+}
+
 func (GroupService) GetGroupUser(groupID uint32, userID uint32) (*model.GroupUser, error) {
 	groupUser := &model.GroupUser{}
 	err := db.Where("group_id = ? and user_id = ?", groupID, userID).First(groupUser).Error

@@ -102,7 +102,7 @@ func (GroupController) UpdateGroupRemark(c *gin.Context) {
 	}
 
 	if !groupService.CheckUserInGroup(json.GroupID, id) {
-		Error(c, "用户未加入组")
+		Error(c, nil, "用户未加入组")
 		return
 	}
 
@@ -161,7 +161,7 @@ func (GroupController) GetGroupMembers(c *gin.Context) {
 	}
 
 	if !groupService.CheckUserInGroup(form.GroupID, id) {
-		Error(c, "用户不在此组")
+		Error(c, nil, "用户不在此组")
 		return
 	}
 
