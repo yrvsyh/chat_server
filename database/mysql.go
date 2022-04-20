@@ -3,7 +3,7 @@ package database
 import (
 	"sync"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -21,12 +21,12 @@ func initMysql() {
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 	if mysqlDB.Error != nil {
-		log.Fatal(mysqlDB.Error)
+		logrus.Fatal(mysqlDB.Error)
 	}
-	log.Info("mysql init done")
+	logrus.Info("mysql init done")
 }
 
 func GetMysqlInstance() *gorm.DB {

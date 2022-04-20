@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
-func LoggerMiddleware(logger *log.Logger) gin.HandlerFunc {
+func LoggerMiddleware(logger *logrus.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 
@@ -28,11 +28,11 @@ func LoggerMiddleware(logger *log.Logger) gin.HandlerFunc {
 				logger.Error(e)
 			}
 		} else {
-			field := log.Fields{
-				"status":     c.Writer.Status(),
-				"method":     c.Request.Method,
-				"path":       path,
-				"time":       end.Format("2006-01-02 15:04:05"),
+			field := logrus.Fields{
+				"status": c.Writer.Status(),
+				// "method":     c.Request.Method,
+				// "path":       path,
+				// "time":       end.Format("2006-01-02 15:04:05"),
 				"user-agent": c.Request.UserAgent(),
 				"latency":    fmt.Sprintf("%v", latency),
 				// "timestamp":  end.Unix(),

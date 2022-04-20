@@ -7,7 +7,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type ChatManager struct {
@@ -26,7 +26,7 @@ func (m *ChatManager) Register(id uint32, conn *websocket.Conn) {
 	// 单客户端登录
 	_, ok := m.clientsMap.Load(id)
 	if ok {
-		log.Info("Signed in on another client")
+		logrus.Info("Signed in on another client")
 		conn.WriteMessage(websocket.CloseMessage, []byte("Signed in on another client"))
 		conn.Close()
 		return
@@ -107,7 +107,7 @@ func (m *ChatManager) getGroupMembers(groupID uint32) mapset.Set[uint32] {
 	if !ok {
 		members, err := groupService.GetGroupMemberSet(groupID)
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		// TODO 使用mapset.Set
 		for userID := range members {

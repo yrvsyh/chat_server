@@ -5,7 +5,7 @@ import (
 	"chat_server/model"
 	"errors"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type MessageService struct{}
@@ -120,7 +120,7 @@ func (MessageService) GetGroupOfflineMessages(id uint32) ([]model.GroupMessage, 
 		lastMsgID := groupUser.LastMsgID
 		var groupMessages []model.GroupMessage
 		if err := db.Where("`to` = ?", groupUser.GroupID).Where("`id` > ?", lastMsgID).Where("`from` != ?", id).Find(&groupMessages).Error; err != nil {
-			log.Error(err)
+			logrus.Error(err)
 			retErr = err
 		}
 		messages = append(messages, groupMessages...)

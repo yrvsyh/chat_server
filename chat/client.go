@@ -8,7 +8,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -82,7 +82,7 @@ func (c *client) readHandle() {
 		_, data, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Error(err)
+				logrus.Error(err)
 			}
 			break
 		}
@@ -91,7 +91,7 @@ func (c *client) readHandle() {
 		msg := &message.Message{}
 		err = proto.Unmarshal(data, msg)
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 			continue
 		}
 		// 不是这个客户端的消息
@@ -111,7 +111,7 @@ func (c *client) readHandle() {
 			messageService.SaveMessage(msg)
 			c.groupMessageHandle(msg)
 		default:
-			log.Error("message type error")
+			logrus.Error("message type error")
 		}
 	}
 }
@@ -131,7 +131,7 @@ func (c *client) writeHandle() {
 			}
 			data, err := proto.Marshal(msg)
 			if err != nil {
-				log.Error(err)
+				logrus.Error(err)
 				continue
 			}
 			if c.conn.WriteMessage(websocket.BinaryMessage, data) != nil {
@@ -168,7 +168,7 @@ func (c *client) AckHandle(msgID int64) {
 		// 更新这个客户端的信息
 		msg.From = c.id
 		if err := messageService.UpdateLastMsgID(msg); err != nil {
-			log.Error(err)
+			logrus.Error(err)
 		}
 	}
 }

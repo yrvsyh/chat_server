@@ -4,14 +4,14 @@ import (
 	"chat_server/message"
 	"chat_server/utils"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func (c *client) userOnlineHandle() bool {
 	// 初始化manager内的friends和groups信息
 	friendsSet, err := userService.GetUserFriendIDSet(c.id)
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		return false
 	}
 	// TODO 使用mapset.Set
@@ -21,7 +21,7 @@ func (c *client) userOnlineHandle() bool {
 
 	groupsSet, err := userService.GetUserGroupIDSet(c.id)
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		return false
 	}
 	for group := range groupsSet {
@@ -98,7 +98,7 @@ func (c *client) friendMessageHandle(msg *message.Message) {
 }
 
 func (c *client) groupMessageHandle(msg *message.Message) {
-	log.Info("group msg ", msg.Id)
+	logrus.Info("group msg ", msg.Id)
 	groupID := msg.To
 	if c.groupSet.Contains(groupID) {
 		groupMembers := c.m.getGroupMembers(groupID)

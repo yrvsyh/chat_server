@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -25,7 +25,7 @@ func main() {
 	body, _ := json.Marshal(gin.H{"username": name, "password": password})
 	resp, err := http.Post("http://127.0.0.1:8080/auth/login", "application/json", strings.NewReader(string(body)))
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		return
 	}
 
@@ -52,7 +52,7 @@ func main() {
 	dialer := websocket.DefaultDialer
 	conn, _, err := dialer.Dial("ws://127.0.0.1:8080/ws/chat", req.Header)
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		return
 	}
 	defer conn.Close()
@@ -62,7 +62,7 @@ func main() {
 			_, data, err = conn.ReadMessage()
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					log.Error(err)
+					logrus.Error(err)
 				}
 				return
 			}
@@ -70,7 +70,7 @@ func main() {
 			msg := &message.Message{}
 			err = proto.Unmarshal(data, msg)
 			if err != nil {
-				log.Error(err)
+				logrus.Error(err)
 				return
 			}
 
@@ -85,7 +85,7 @@ func main() {
 				}
 				data, err = proto.Marshal(ack)
 				if err != nil {
-					log.Error(err)
+					logrus.Error(err)
 					break
 				}
 
@@ -97,7 +97,7 @@ func main() {
 					msg.From, msg.To = msg.To, msg.From
 					data, err = proto.Marshal(msg)
 					if err != nil {
-						log.Error(err)
+						logrus.Error(err)
 						break
 					}
 					fmt.Println("send ", msg)
@@ -129,13 +129,13 @@ func main() {
 		msg.Content = []byte(msgContent)
 		data, err = proto.Marshal(msg)
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 			break
 		}
 
 		err = conn.WriteMessage(websocket.BinaryMessage, data)
 		if err != nil {
-			log.Error(err)
+			logrus.Error(err)
 			break
 		}
 	}

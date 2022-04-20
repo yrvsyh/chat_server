@@ -5,7 +5,7 @@ import (
 	"chat_server/middleware"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -19,7 +19,7 @@ var (
 func InitRouter() *gin.Engine {
 	r := gin.New()
 
-	r.Use(middleware.LoggerMiddleware(log.StandardLogger()))
+	r.Use(middleware.LoggerMiddleware(logrus.StandardLogger()))
 	r.Use(gin.Recovery())
 
 	r.LoadHTMLGlob("templates/**/*")
@@ -32,7 +32,7 @@ func InitRouter() *gin.Engine {
 
 	auth := r.Group("/auth")
 	{
-		auth.GET("/register", authController.Register)
+		// auth.GET("/register", authController.Register)
 		auth.POST("/register", authController.Register)
 		auth.POST("/login", authController.Login)
 		auth.GET("/logout", middleware.SessionAuthMiddleware(), authController.Logout)

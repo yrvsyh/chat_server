@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -22,11 +22,11 @@ func (UserService) hashPassword(password string) string {
 func (UserService) verifyPassword(formPassword string, dbPassword string) bool {
 	hashPassword := userService.hashPassword(formPassword)
 
-	log.WithFields(log.Fields{
-		"password":     formPassword,
-		"dbPassword":   dbPassword,
-		"hashPassword": hashPassword,
-	}).Info("PASSWORD CHECK")
+	// logrus.WithFields(logrus.Fields{
+	// 	"password":     formPassword,
+	// 	"dbPassword":   dbPassword,
+	// 	"hashPassword": hashPassword,
+	// }).Info("PASSWORD CHECK")
 
 	return dbPassword == hashPassword
 }
@@ -160,7 +160,7 @@ func (UserService) AcceptUserFriend(id uint32, friendID uint32) error {
 	peerInfo := &model.UserFriend{UserID: friendID, FriendID: id, Accept: true}
 	if err := db.Where(peerInfo).First(peerInfo).Error; err != nil {
 		// 对方未发起请求
-		log.Error(err)
+		logrus.Error(err)
 		return errors.New("对方未发起请求")
 	}
 

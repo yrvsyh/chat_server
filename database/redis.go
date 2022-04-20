@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/go-redis/redis"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -20,9 +20,9 @@ func initRedis() {
 	})
 	_, err := redisDB.Ping().Result()
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 	}
-	log.Info("redis init done")
+	logrus.Info("redis init done")
 }
 
 func GetRedisInstance() *redis.Client {

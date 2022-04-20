@@ -13,13 +13,13 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/gorilla/websocket"
 	"github.com/shiena/ansicolor"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
 
 func init() {
-	log.StandardLogger().SetFormatter(&log.TextFormatter{ForceColors: true})
-	log.StandardLogger().SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
+	logrus.StandardLogger().SetFormatter(&logrus.TextFormatter{ForceColors: true})
+	logrus.StandardLogger().SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
 }
 
 func testRedis() {
@@ -30,8 +30,8 @@ func testRedis() {
 	})
 	_, err := rdb.Ping().Result()
 	if err != nil {
-		// log.Panic().Err(err)
-		log.Panic(err)
+		// logrus.Panic().Err(err)
+		logrus.Panic(err)
 	}
 }
 
@@ -48,11 +48,11 @@ func testProto() {
 func testLogin() {
 	resp, err := http.Post("http://127.0.0.1:8080/auth/login", "application/x-www-form-urlencoded", strings.NewReader("username=yzy&password=yuan"))
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		return
 	}
 	header := resp.Header
-	log.Info(header)
+	logrus.Info(header)
 
 	req, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:8080/auth/logout", nil)
 
@@ -62,23 +62,23 @@ func testLogin() {
 		}
 	}
 
-	log.Info(req.Cookies())
+	logrus.Info(req.Cookies())
 
 	client := &http.Client{}
 	resp, _ = client.Do(req)
 	data, _ := io.ReadAll(resp.Body)
-	log.Info(string(data))
+	logrus.Info(string(data))
 }
 
 func testChat() {
 	resp, err := http.Post("http://127.0.0.1:8080/auth/login", "application/x-www-form-urlencoded", strings.NewReader("username=yzy&password=yuan"))
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		return
 	}
 
 	data, _ := io.ReadAll(resp.Body)
-	log.Info(string(data))
+	logrus.Info(string(data))
 
 	req := &http.Request{Header: make(http.Header)}
 	for _, cookie := range resp.Cookies() {
@@ -87,12 +87,12 @@ func testChat() {
 		}
 	}
 
-	log.Infof("%+v", req.Header)
+	logrus.Infof("%+v", req.Header)
 
 	dialer := websocket.DefaultDialer
 	conn, _, err := dialer.Dial("ws://127.0.0.1:8080/ws/chat", req.Header)
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		return
 	}
 	defer conn.Close()
@@ -105,19 +105,19 @@ func testChat() {
 	msg.Content = make([]byte, 16)
 	data, err = proto.Marshal(msg)
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		return
 	}
 
 	err = conn.WriteMessage(websocket.BinaryMessage, data)
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		return
 	}
 	_, data, err = conn.ReadMessage()
 	if err != nil {
 		if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-			log.Error(err)
+			logrus.Error(err)
 		}
 		return
 	}
@@ -125,10 +125,10 @@ func testChat() {
 	msg = &message.Message{}
 	err = proto.Unmarshal(data, msg)
 	if err != nil {
-		log.Error(err)
+		logrus.Error(err)
 		return
 	}
-	log.Info(msg)
+	logrus.Info(msg)
 
 	conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 }
@@ -159,14 +159,14 @@ func testChat() {
 
 // 	db.Preload("Friends.Friend").Find(yzy)
 // 	for _, friend := range user1.Friends {
-// 		log.Infof("%+v", friend.Friend)
+// 		logrus.Infof("%+v", friend.Friend)
 // 	}
 
 // 	//db.Model(user1).Association("Groups").Append(&model.UserGroups{GroupID: group.ID, Remark: "group_remark"})
 // 	//
 // 	//db.Preload("Users").Find(group)
 // 	//for _, user := range group.Users {
-// 	//	log.Infof("%+v", user)
+// 	//	logrus.Infof("%+v", user)
 // 	//}
 
 // 	////db.Where("username=?", user.Username).Delete(user)
@@ -192,7 +192,7 @@ func testGroup() {
 	//db.Model(group).Association("Members").Append(user2)
 
 	// member, _ := groupService.GetGroupMemberNameList(2)
-	// log.Infof("%+v", member)
+	// logrus.Infof("%+v", member)
 }
 
 func main() {
