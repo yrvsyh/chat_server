@@ -1,10 +1,11 @@
 package controller
 
 import (
+	e "chat_server/errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,18 +28,19 @@ func SuccessData(c *gin.Context, data interface{}) {
 }
 
 func Err(c *gin.Context, err error) {
-	c.Set("Code", -1)
-	c.Set("Msg", err.Error())
-	c.JSON(http.StatusOK, Result{Code: -1, Msg: err.Error()})
-	c.Abort()
+	if err != nil {
+		logrus.Warn(err.Error())
+		msg := fmt.Sprintf("%s", err)
+		c.Set("Code", -1)
+		c.Set("Msg", msg)
+		c.JSON(http.StatusOK, Result{Code: -1, Msg: msg})
+		c.Abort()
+	}
 }
 
 func Error(c *gin.Context, err error, msg string) {
-	logrus.Error(errors.Wrap(err, msg))
-	c.Set("Code", -1)
-	c.Set("Msg", msg)
-	c.JSON(http.StatusOK, Result{Code: -1, Msg: msg})
-	c.Abort()
+	err = e.Wrap(err, msg)
+	Err(c, err)
 }
 
 func ErrorCode(c *gin.Context, code int, msg string) {

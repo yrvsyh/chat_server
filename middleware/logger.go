@@ -29,7 +29,7 @@ func LoggerMiddleware(logger *logrus.Logger) gin.HandlerFunc {
 			}
 		} else {
 			field := logrus.Fields{
-				"status": c.Writer.Status(),
+				// "status": c.Writer.Status(),
 				// "method":     c.Request.Method,
 				// "path":       path,
 				// "time":       end.Format("2006-01-02 15:04:05"),
@@ -49,9 +49,10 @@ func LoggerMiddleware(logger *logrus.Logger) gin.HandlerFunc {
 			if status != http.StatusOK {
 				code = status
 				msg = http.StatusText(status)
+				logger.WithFields(field).Errorf("REQUEST [%s %s] [Code=%d Msg=%s]", c.Request.Method, path, code, msg)
+			} else {
+				logger.WithFields(field).Infof("REQUEST [%s %s] [Code=%d Msg=%s]", c.Request.Method, path, code, msg)
 			}
-
-			logger.WithFields(field).Infof("REQUEST [%s %s] [Code=%d Msg=%s]", c.Request.Method, path, code, msg)
 		}
 	}
 }

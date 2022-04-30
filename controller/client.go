@@ -2,6 +2,7 @@ package controller
 
 import (
 	"chat_server/config"
+	e "chat_server/errors"
 	"chat_server/message"
 	"chat_server/model"
 	"chat_server/utils"
@@ -16,71 +17,84 @@ type ClientController struct{}
 
 // 获取用户的头像, 返回头像文件
 func (ClientController) GetUserAvatar(c *gin.Context) {
-	data := struct {
-		UserID uint32 `form:"user_id" json:"user_id" binding:"required"`
-	}{}
-	if err := c.ShouldBind(&data); err != nil {
-		Error(c, err, "参数错误")
-		return
-	}
+	Err(c, e.Try(func() {
+		data := struct {
+			UserID uint32 `form:"user_id" json:"user_id" binding:"required"`
+		}{}
+		err := c.ShouldBind(&data)
+		e.Check(err, "参数错误")
 
-	user, err := userService.GetUserByID(data.UserID)
+		user, err := userService.GetUserByID(data.UserID)
+		e.Check(err, "获取用户信息失败")
+
+		filePath := config.AvatarPathPrefix + user.Avatar
+		if !utils.FileExist(filePath) {
+			filePath = config.AvatarPathPrefix + "user"
+		}
+
+		c.File(filePath)
+	}))
+}
+
+// 获取当前用户信息
+func (ClientController) GetUserInfo(c *gin.Context) {
+	id, _ := GetLoginUserInfo(c)
+
+	user, err := userService.GetUserByID(id)
 	if err != nil {
-		Error(c, err, "获取用户失败")
+		Error(c, err, "获取当前用户信息失败")
 		return
 	}
 
-	fileName := user.Avatar
-
-	if strings.TrimSpace(fileName) == "" {
-		fileName = "default.jpg"
+	type VO struct {
+		ID       uint32 `json:"id"`
+		Username string `json:"username"`
+		Nickname string `json:"nickname"`
+		Email    string `json:"email"`
+		Phone    string `json:"phone"`
+		Avatar   string `json:"avatar"`
+	}
+	var ret = VO{
+		ID:       user.ID,
+		Username: user.Username,
+		Nickname: user.Nickname,
+		Email:    user.Email,
+		Phone:    user.Phone,
+		Avatar:   user.Avatar,
 	}
 
-	filePath := config.AvatarPathPrefix + fileName
-	if !utils.FileExist(filePath) {
-		Error(c, nil, "头像不存在")
-		return
-	}
-
-	c.File(filePath)
+	SuccessData(c, ret)
 }
 
 // 获取组的头像, 返回头像文件
 func (ClientController) GetGroupAvatar(c *gin.Context) {
-	data := struct {
-		GroupID uint32 `form:"group_id" json:"group_id" binding:"required"`
-	}{}
-	if err := c.ShouldBind(&data); err != nil {
-		Error(c, err, "参数错误")
-		return
-	}
+	e.TryCatch(func() {
+		data := struct {
+			GroupID uint32 `form:"group_id" json:"group_id" binding:"required"`
+		}{}
+		err := c.ShouldBind(&data)
+		e.Check(err, "参数错误")
 
-	user, err := groupService.GetGroupByID(data.GroupID)
-	if err != nil {
-		Error(c, err, "获取群组信息失败")
-		return
-	}
+		group, err := groupService.GetGroupByID(data.GroupID)
+		e.Check(err, "获取群组信息失败")
 
-	fileName := user.Avatar
+		filePath := config.AvatarPathPrefix + group.Avatar
+		if !utils.FileExist(filePath) {
+			filePath = config.AvatarPathPrefix + "group"
+		}
 
-	if strings.TrimSpace(fileName) == "" {
-		fileName = "default.jpg"
-	}
+		c.File(filePath)
+	}, func(err error) {
+		Err(c, err)
+	})
 
-	filePath := config.AvatarPathPrefix + fileName
-	if !utils.FileExist(filePath) {
-		Error(c, nil, "头像不存在")
-		return
-	}
-
-	c.File(filePath)
 }
 
 // 返回好友的基本信息 id name(username nickname(对方的昵称) remark(对好友的备注)) avatar public_key
 func (ClientController) GetUserFriends(c *gin.Context) {
 	id, _ := GetLoginUserInfo(c)
 
-	friends, err := userService.GetUserFriendsByID(id)
+	userFriends, err := userService.GetUserFriendsDetailByID(id)
 	if err != nil {
 		Error(c, err, "获取好友信息失败")
 		return
@@ -94,16 +108,17 @@ func (ClientController) GetUserFriends(c *gin.Context) {
 	}
 	var ret []VO
 
-	for _, friend := range friends {
+	for _, userFriend := range userFriends {
 		vo := VO{
-			ID:        friend.UserID,
-			Name:      friend.User.Username,
-			PublicKey: friend.User.PublicKey,
+			ID:        userFriend.FriendID,
+			Name:      userFriend.Friend.Username,
+			Avatar:    userFriend.Friend.Avatar,
+			PublicKey: userFriend.Friend.PublicKey,
 		}
-		if name := strings.TrimSpace(friend.User.Nickname); name != "" {
+		if name := strings.TrimSpace(userFriend.Friend.Nickname); name != "" {
 			vo.Name = name
 		}
-		if name := strings.TrimSpace(friend.Remark); name != "" {
+		if name := strings.TrimSpace(userFriend.Remark); name != "" {
 			vo.Name = name
 		}
 		ret = append(ret, vo)
@@ -116,29 +131,37 @@ func (ClientController) GetUserFriends(c *gin.Context) {
 func (ClientController) GetUserGroups(c *gin.Context) {
 	id, _ := GetLoginUserInfo(c)
 
-	groups, err := groupService.GetJoinedGroupsInfo(id)
+	groupUsers, err := groupService.GetJoinedGroupsInfo(id)
 	if err != nil {
 		Error(c, err, "获取群组信息失败")
 		return
 	}
 
 	type VO struct {
-		ID       uint32 `json:"id"`
-		Name     string `json:"name"`
-		Avatar   string `json:"avatar"`
-		Nickname string `json:"nickname"`
+		ID        uint32 `json:"id"`
+		Name      string `json:"name"`
+		Avatar    string `json:"avatar"`
+		PublicKey string `json:"public_key"`
+		Nickname  string `json:"nickname"`
 	}
 	var ret []VO
 
-	for _, group := range groups {
+	for _, groupUser := range groupUsers {
 		vo := VO{
-			ID:       group.GroupID,
-			Name:     group.Group.Name,
-			Avatar:   group.Group.Avatar,
-			Nickname: group.Nickname,
+			ID:        groupUser.GroupID,
+			Name:      groupUser.Group.Name,
+			Avatar:    groupUser.Group.Avatar,
+			PublicKey: groupUser.Group.PublicKey,
+			Nickname:  groupUser.User.Username,
 		}
-		if name := strings.TrimSpace(group.Remark); name != "" {
+		if name := strings.TrimSpace(groupUser.Remark); name != "" {
 			vo.Name = name
+		}
+		if nickname := strings.TrimSpace(groupUser.User.Nickname); nickname != "" {
+			vo.Nickname = nickname
+		}
+		if nickname := strings.TrimSpace(groupUser.Nickname); nickname != "" {
+			vo.Nickname = nickname
 		}
 		ret = append(ret, vo)
 	}
@@ -266,97 +289,60 @@ func (ClientController) GetGroupMemberInfo(c *gin.Context) {
 	SuccessData(c, ret)
 }
 
-// 发送图片到指定用户, 服务端构造推送信息
-func (ClientController) SendImage(c *gin.Context) {
+// 向好友发送文件
+func (ClientController) SendUserFile(c *gin.Context) {
 	id, _ := GetLoginUserInfo(c)
 
 	data := struct {
-		ToFriend bool                  `form:"to_friend" json:"to_friend" binding:"required"`
-		To       uint32                `form:"to" json:"to" binding:"required"`
-		Image    *multipart.FileHeader `form:"image" json:"image" binding:"required"`
+		To   uint32                `form:"to" json:"to" binding:"required"`
+		File *multipart.FileHeader `form:"file" json:"file" binding:"required"`
 	}{}
 	if err := c.ShouldBind(&data); err != nil {
 		Error(c, err, "参数错误")
 		return
 	}
 
-	if data.ToFriend {
-		// 判断是否为好友
-		if _, err := userService.GetUserFriendDetailByFriendID(id, data.To); err != nil {
-			Error(c, err, "获取用户好友失败")
-			return
-		}
-	} else {
-		// 判断是否在组内
-		if !groupService.CheckUserInGroup(data.To, id) {
-			Error(c, nil, "用户不在组内")
-			return
-		}
+	// 判断是否为好友
+	if _, err := userService.GetUserFriendDetailByFriendID(id, data.To); err != nil {
+		Error(c, err, "获取用户好友失败")
+		return
 	}
-
-	file := data.Image
 
 	var fileName string
 	var filePath string
 	for {
-		fileName = utils.GenUUID()
-		filePath = config.ImagePathPrefix + fileName
+		fileName = utils.GenUUID() + "-" + data.File.Filename
+		filePath = config.UploadPathPrefix + fileName
 		if !utils.FileExist(filePath) {
 			break
 		}
 	}
 
-	if err := c.SaveUploadedFile(file, filePath); err != nil {
-		Error(c, err, "保存图片失败")
+	if err := c.SaveUploadedFile(data.File, filePath); err != nil {
+		Error(c, err, "保存文件失败")
 		return
 	}
-
-	// if data.ToFriend {
-	// 	msg := &message.Message{
-	// 		Type:    message.Type_FRIEND_IMAGE,
-	// 		From:    id,
-	// 		To:      data.To,
-	// 		Content: []byte(fileName),
-	// 	}
-	// 	manager.SendMessage(msg)
-	// } else {
-	// 	msg := &message.Message{
-	// 		Type:    message.Type_GROUP_IMAGE,
-	// 		From:    id,
-	// 		To:      data.To,
-	// 		Content: []byte(fileName),
-	// 	}
-	// 	manager.SendMessage(msg)
-	// }
 
 	SuccessData(c, gin.H{"filename": fileName})
 }
 
-func (ClientController) SendFile(c *gin.Context) {
+// 向小组发送文件
+func (ClientController) SendGroupFile(c *gin.Context) {
 	id, _ := GetLoginUserInfo(c)
 
 	data := struct {
-		ToFriend bool                  `form:"to_friend" json:"to_friend" binding:"required"`
-		To       uint32                `form:"to" json:"to" binding:"required"`
-		File     *multipart.FileHeader `form:"file" json:"file" binding:"required"`
+		To   uint32                `form:"to" json:"to" binding:"required"`
+		File *multipart.FileHeader `form:"file" json:"file" binding:"required"`
 	}{}
 	if err := c.ShouldBind(&data); err != nil {
 		Error(c, err, "参数错误")
 		return
 	}
 
-	if data.ToFriend {
-		// 判断是否为好友
-		if _, err := userService.GetUserFriendDetailByFriendID(id, data.To); err != nil {
-			Error(c, err, "获取用户好友失败")
-			return
-		}
-	} else {
-		// 判断是否在组内
-		if !groupService.CheckUserInGroup(data.To, id) {
-			Error(c, nil, "用户不在组内")
-			return
-		}
+	// 判断是否在组内
+	if !groupService.CheckUserInGroup(data.To, id) {
+		Error(c, nil, "用户不在组内")
+		return
 	}
 
 	file := data.File
@@ -364,8 +350,8 @@ func (ClientController) SendFile(c *gin.Context) {
 	var fileName string
 	var filePath string
 	for {
-		fileName = utils.GenUUID()
-		filePath = config.ImagePathPrefix + fileName
+		fileName = utils.GenUUID() + "-" + file.Filename
+		filePath = config.UploadPathPrefix + fileName
 		if !utils.FileExist(filePath) {
 			break
 		}
@@ -376,25 +362,24 @@ func (ClientController) SendFile(c *gin.Context) {
 		return
 	}
 
-	// if data.ToFriend {
-	// 	msg := &message.Message{
-	// 		Type:    message.Type_FRIEND_FILE,
-	// 		From:    id,
-	// 		To:      data.To,
-	// 		Content: []byte(fileName),
-	// 	}
-	// 	manager.SendMessage(msg)
-	// } else {
-	// 	msg := &message.Message{
-	// 		Type:    message.Type_GROUP_FILE,
-	// 		From:    id,
-	// 		To:      data.To,
-	// 		Content: []byte(fileName),
-	// 	}
-	// 	manager.SendMessage(msg)
-	// }
-
 	SuccessData(c, gin.H{"filename": fileName})
+}
+
+// 获取发送的文件
+func (ClientController) GetFile(c *gin.Context) {
+	data := struct {
+		FileName string `form:"file_name" json:"file_name" binding:"required"`
+	}{}
+	if err := c.ShouldBind(&data); err != nil {
+		c.Status(404)
+	}
+
+	filePath := config.UploadPathPrefix + data.FileName
+	if !utils.FileExist(filePath) {
+		c.Status(404)
+	}
+
+	c.File(filePath)
 }
 
 // 更新当前用户信息
@@ -432,51 +417,46 @@ func (ClientController) UpdateUserInfo(c *gin.Context) {
 func (ClientController) UpdateUserAvatar(c *gin.Context) {
 	id, _ := GetLoginUserInfo(c)
 
-	data := struct {
-		Avatar *multipart.FileHeader `form:"avatar" json:"avatar" binding:"required"`
-	}{}
-	if err := c.ShouldBind(&data); err != nil {
-		Error(c, err, "参数错误")
-		return
-	}
+	e.TryCatch(func() {
+		data := struct {
+			Avatar *multipart.FileHeader `form:"avatar" json:"avatar" binding:"required"`
+		}{}
+		err := c.ShouldBind(&data)
+		e.Check(err, "参数错误")
 
-	file := data.Avatar
-	if file.Size > config.AvatarFileSizeLimit {
-		Error(c, nil, "头像文件过大")
-		return
-	}
-
-	user, err := userService.GetUserByID(id)
-	if err != nil {
-		Error(c, err, "获取用户信息失败")
-		return
-	}
-
-	// 删除旧文件
-	os.Remove(config.AvatarPathPrefix + user.Avatar)
-
-	var fileName string
-	var filePath string
-	for {
-		fileName = utils.GenUUID()
-		filePath = config.AvatarPathPrefix + fileName
-		if !utils.FileExist(filePath) {
-			break
+		file := data.Avatar
+		if file.Size > config.AvatarFileSizeLimit {
+			e.Throw("头像文件过大")
 		}
-	}
 
-	if err := c.SaveUploadedFile(file, filePath); err != nil {
-		Error(c, err, "保存头像文件失败")
-		return
-	}
+		user, err := userService.GetUserByID(id)
+		e.Check(err, "获取用户信息失败")
 
-	user.Avatar = fileName
-	if err := userService.UpdateUser(user); err != nil {
-		Error(c, err, "更新用户头像失败")
-		return
-	}
+		// 删除旧文件
+		oldAvatar := user.Avatar
+		os.Remove(config.AvatarPathPrefix + user.Avatar)
 
-	Success(c)
+		var fileName string
+		var filePath string
+		for {
+			fileName = utils.GenUUID()
+			filePath = config.AvatarPathPrefix + fileName
+			if !utils.FileExist(filePath) {
+				break
+			}
+		}
+
+		err = c.SaveUploadedFile(file, filePath)
+		e.Check(err, "保存头像文件失败")
+
+		user.Avatar = fileName
+		err = userService.UpdateUser(user)
+		e.Check(err, "更新用户头像失败")
+
+		SuccessData(c, gin.H{"old_avatar": oldAvatar})
+	}, func(err error) {
+		Err(c, err)
+	})
 }
 
 // 修改好友备注
@@ -512,63 +492,54 @@ func (ClientController) UpdateFriendRemark(c *gin.Context) {
 func (ClientController) UpdateGroupAvatar(c *gin.Context) {
 	id, _ := GetLoginUserInfo(c)
 
-	data := struct {
-		GroupID uint32                `form:"group_id" json:"group_id" binding:"required"`
-		Avatar  *multipart.FileHeader `form:"avatar" json:"avatar" binding:"required"`
-	}{}
-	if err := c.ShouldBind(&data); err != nil {
-		Error(c, err, "参数错误")
-		return
-	}
+	e.TryCatch(func() {
+		data := struct {
+			GroupID uint32                `form:"group_id" json:"group_id" binding:"required"`
+			Avatar  *multipart.FileHeader `form:"avatar" json:"avatar" binding:"required"`
+		}{}
+		err := c.ShouldBind(&data)
+		e.Check(err, "参数错误")
 
-	file := data.Avatar
-	if file.Size > config.AvatarFileSizeLimit {
-		Error(c, nil, "头像文件过大")
-		return
-	}
-
-	groupUser, err := groupService.GetGroupUser(data.GroupID, id)
-	if err != nil {
-		Error(c, err, "获取组成员信息失败")
-		return
-	}
-
-	if groupUser.Group.OwnerID != id {
-		Error(c, err, "无权限")
-		return
-	}
-
-	group, err := groupService.GetGroupByID(data.GroupID)
-	if err != nil {
-		Error(c, err, "获取群组信息失败")
-		return
-	}
-
-	// 删除旧文件
-	os.Remove(config.AvatarPathPrefix + group.Avatar)
-
-	var fileName string
-	var filePath string
-	for {
-		fileName = utils.GenUUID()
-		filePath = config.AvatarPathPrefix + fileName
-		if !utils.FileExist(filePath) {
-			break
+		file := data.Avatar
+		if file.Size > config.AvatarFileSizeLimit {
+			e.Throw("头像文件过大")
 		}
-	}
 
-	if err := c.SaveUploadedFile(file, filePath); err != nil {
-		Error(c, err, "保存头像文件失败")
-		return
-	}
+		groupUser, err := groupService.GetGroupUser(data.GroupID, id)
+		e.Check(err, "获取组成员信息失败")
 
-	group.Avatar = fileName
-	if err := groupService.UpdateGroup(group); err != nil {
-		Error(c, err, "更新群组头像失败")
-		return
-	}
+		if groupUser.Group.OwnerID != id {
+			e.Throw("无权限")
+		}
 
-	Success(c)
+		group, err := groupService.GetGroupByID(data.GroupID)
+		e.Check(err, "获取群组信息失败")
+
+		// 删除旧文件
+		oldAvatar := group.Avatar
+		os.Remove(config.AvatarPathPrefix + group.Avatar)
+
+		var fileName string
+		var filePath string
+		for {
+			fileName = utils.GenUUID()
+			filePath = config.AvatarPathPrefix + fileName
+			if !utils.FileExist(filePath) {
+				break
+			}
+		}
+
+		err = c.SaveUploadedFile(file, filePath)
+		e.Check(err, "保存头像文件失败")
+
+		group.Avatar = fileName
+		err = groupService.UpdateGroup(group)
+		e.Check(err, "更新群组头像失败")
+
+		SuccessData(c, gin.H{"old_avatar": oldAvatar})
+	}, func(err error) {
+		Err(c, err)
+	})
 }
 
 // 修改群备注
@@ -647,6 +618,7 @@ func (ClientController) SearchUser(c *gin.Context) {
 		ID       uint32 `json:"id"`
 		Username string `json:"username"`
 		Nickname string `json:"nickname"`
+		Avatar   string `json:"avatar"`
 	}
 	var ret []VO
 
@@ -655,6 +627,7 @@ func (ClientController) SearchUser(c *gin.Context) {
 			ID:       user.ID,
 			Username: user.Username,
 			Nickname: user.Nickname,
+			Avatar:   user.Avatar,
 		}
 		ret = append(ret, vo)
 	}
@@ -752,9 +725,10 @@ func (ClientController) CreateGroup(c *gin.Context) {
 	id, _ := GetLoginUserInfo(c)
 
 	data := struct {
-		Name  string `form:"name" json:"name" binding:"required"`
-		Type  string `form:"type" json:"type" binding:"required"`
-		Label string `form:"label" json:"label" binding:"required"`
+		Name      string `form:"name" json:"name" binding:"required"`
+		PublicKey string `form:"public_key" json:"public_key" binding:"required"`
+		Type      string `form:"type" json:"type" binding:"required"`
+		Label     string `form:"label" json:"label" binding:"required"`
 	}{}
 
 	if err := c.ShouldBind(&data); err != nil {
@@ -765,6 +739,7 @@ func (ClientController) CreateGroup(c *gin.Context) {
 	group := &model.Group{}
 	group.OwnerID = id
 	group.Name = data.Name
+	group.PublicKey = data.PublicKey
 	group.Type = data.Type
 	group.Label = data.Label
 	if err := groupService.CreateGroup(group); err != nil {
@@ -772,7 +747,7 @@ func (ClientController) CreateGroup(c *gin.Context) {
 		return
 	}
 
-	SuccessData(c, gin.H{"id": group.ID})
+	SuccessData(c, gin.H{"group_id": group.ID})
 }
 
 // 邀请好友进群

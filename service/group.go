@@ -88,7 +88,7 @@ func (GroupService) InvteUser(initiatorID uint32, groupID uint32, inviteesID uin
 
 func (GroupService) GetJoinedGroupsInfo(id uint32) ([]model.GroupUser, error) {
 	var groupUsers []model.GroupUser
-	err := db.Preload("Group").Where("user_id = ?", id).Find(&groupUsers).Error
+	err := db.Preload("Group").Preload("User").Where("user_id = ?", id).Find(&groupUsers).Error
 	return groupUsers, err
 }
 

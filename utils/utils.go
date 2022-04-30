@@ -52,7 +52,7 @@ func Bytes2BinStr(b []byte) string {
 }
 
 func FileExist(path string) bool {
-	_, err := os.Stat(path)
+	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsExist(err) {
 			return true
@@ -61,5 +61,5 @@ func FileExist(path string) bool {
 		}
 		return false
 	}
-	return true
+	return !info.IsDir()
 }

@@ -2,11 +2,11 @@ package service
 
 import (
 	"chat_server/config"
+	e "chat_server/errors"
 	"chat_server/model"
 	"crypto/sha256"
 	"encoding/hex"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -39,21 +39,21 @@ func (UserService) Register(username string, password string, publicKey string) 
 		PublicKey: publicKey,
 	}
 	err := db.Create(user).Error
-	return errors.Wrap(err, "create data error")
+	return e.Wrap(err, "create data error")
 }
 
-func (UserService) Login(username string, password string) (uint32, string, string, error) {
+func (UserService) Login(username string, password string) (*model.User, error) {
 	user, err := userService.GetUserByUsername(username)
 
 	if err != nil {
-		return 0, "", "", errors.Wrap(err, "no such user")
+		return user, e.Wrap(err, "no such user")
 	}
 
 	if !userService.verifyPassword(password, user.Password) {
-		return 0, "", "", errors.Wrap(err, "password error")
+		return user, e.Wrap(err, "password error")
 	}
 
-	return user.ID, user.Username, user.PublicKey, nil
+	return user, nil
 }
 
 func (UserService) SearchUserByName(name string) ([]model.User, error) {
@@ -161,7 +161,7 @@ func (UserService) AcceptUserFriend(id uint32, friendID uint32) error {
 	if err := db.Where(peerInfo).First(peerInfo).Error; err != nil {
 		// 对方未发起请求
 		logrus.Error(err)
-		return errors.New("对方未发起请求")
+		return e.New("对方未发起请求")
 	}
 
 	userFriend := &model.UserFriend{UserID: id, FriendID: friendID}

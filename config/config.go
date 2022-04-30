@@ -8,8 +8,7 @@ const (
 	AvatarFileSizeLimit = 1 * 1024 * 1024
 	AvatarPathPrefix    = "./static/avatar/"
 
-	ImagePathPrefix = "./static/upload/image/"
-	FilePathPrefix  = "./static/upload/file/"
+	UploadPathPrefix = "./static/upload/"
 
 	RedisChannelGroupMessageKeyPrefix = "group_message_"
 )

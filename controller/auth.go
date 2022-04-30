@@ -3,6 +3,7 @@ package controller
 import (
 	"chat_server/middleware"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,18 +14,18 @@ func (AuthController) Register(c *gin.Context) {
 	if c.Request.Method == http.MethodGet {
 		c.HTML(http.StatusOK, "auth/register.html", nil)
 	} else if c.Request.Method == http.MethodPost {
-		json := struct {
-			Username  string `json:"username" binding:"required"`
-			Password  string `json:"password" binding:"required"`
-			PublicKey string `json:"public_key" binding:"required"`
+		data := struct {
+			Username  string `form:"username" json:"username" binding:"required"`
+			Password  string `form:"password" json:"password" binding:"required"`
+			PublicKey string `form:"public_key" json:"public_key" binding:"required"`
 		}{}
 
-		if err := c.ShouldBind(&json); err != nil {
+		if err := c.ShouldBind(&data); err != nil {
 			Err(c, err)
 			return
 		}
 
-		if err := userService.Register(json.Username, json.Password, json.PublicKey); err != nil {
+		if err := userService.Register(data.Username, data.Password, data.PublicKey); err != nil {
 			Err(c, err)
 			return
 		}
@@ -36,32 +37,49 @@ func (AuthController) Register(c *gin.Context) {
 }
 
 func (AuthController) Login(c *gin.Context) {
-	json := struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
+	data := struct {
+		Username string `form:"username" json:"username" binding:"required"`
+		Password string `form:"password" json:"password" binding:"required"`
 	}{}
 
-	if err := c.ShouldBind(&json); err != nil {
+	if err := c.ShouldBind(&data); err != nil {
 		Err(c, err)
 		return
 	}
 
-	id, username, publicKey, err := userService.Login(json.Username, json.Password)
+	user, err := userService.Login(data.Username, data.Password)
 	if err != nil {
 		Err(c, err)
 		return
 	}
 
 	session := middleware.GetAuthSession(c)
-	session.Values["id"] = id
-	session.Values["username"] = username
+	session.Values["id"] = user.ID
+	session.Values["username"] = user.Username
 
 	if err := session.Save(c.Request, c.Writer); err != nil {
 		Err(c, err)
 		return
 	}
 
-	SuccessData(c, gin.H{"id": id, "public_key": publicKey})
+	type VO struct {
+		ID        uint32 `json:"id"`
+		Name      string `json:"name"`
+		PublicKey string `json:"public_key"`
+		Avatar    string `json:"avatar"`
+	}
+
+	var ret = VO{
+		ID:        user.ID,
+		Name:      user.Username,
+		PublicKey: user.PublicKey,
+		Avatar:    user.Avatar,
+	}
+	if name := strings.TrimSpace(user.Nickname); name != "" {
+		ret.Name = name
+	}
+
+	SuccessData(c, ret)
 }
 
 func (AuthController) Logout(c *gin.Context) {
